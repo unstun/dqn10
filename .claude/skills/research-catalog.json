@@ -1,0 +1,531 @@
+{
+  "schema": "viewerleaf-research-catalog-v1",
+  "generatedAt": "2026-04-08T00:00:00Z",
+  "upstream": {
+    "repo": "dr-claw",
+    "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+  },
+  "skills": [
+    {
+      "id": "inno-experiment-analysis",
+      "name": "inno-experiment-analysis",
+      "version": "0.1.0",
+      "description": "This skill should be used when the user asks to \"analyze experimental results\", \"generate results section\", \"statistical analysis of experiments\", \"compare model performance\", \"create results visualization\", or mentions connecting experime...",
+      "summary": "This skill should be used when the user asks to \"analyze experimental results\", \"generate results section\", \"statistical analysis of experiments\", \"compare model performance\", \"create results visualization\", or mentions connecting experime...",
+      "stages": [
+        "experiment"
+      ],
+      "tools": [
+        "read_file",
+        "search_project",
+        "write_file"
+      ],
+      "primaryIntent": "evaluation",
+      "intents": [
+        "evaluation",
+        "experiment"
+      ],
+      "capabilities": [
+        "evaluation-benchmarking"
+      ],
+      "domains": [
+        "general"
+      ],
+      "keywords": [
+        "research",
+        "analysis",
+        "statistics",
+        "visualization",
+        "paper writing",
+        "inno-experiment-analysis",
+        "evaluation-benchmarking",
+        "inno",
+        "experiment",
+        "this",
+        "should",
+        "be"
+      ],
+      "source": "builtin",
+      "status": "verified",
+      "upstream": {
+        "repo": "dr-claw",
+        "path": "skills/inno-experiment-analysis",
+        "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+      },
+      "resourceFlags": {
+        "hasReferences": true,
+        "hasScripts": false,
+        "hasTemplates": false,
+        "hasAssets": false,
+        "referenceCount": 4,
+        "scriptCount": 0,
+        "templateCount": 0,
+        "assetCount": 0,
+        "optionalScripts": false
+      },
+      "legacy": {
+        "dirPath": "inno-experiment-analysis",
+        "skillFile": "skills/inno-experiment-analysis/SKILL.md",
+        "topLevelGroup": "Standalone",
+        "collection": "Analysis",
+        "domain": "General"
+      }
+    },
+    {
+      "id": "inno-experiment-dev",
+      "name": "inno-experiment-dev",
+      "version": "1.0.0",
+      "description": "Creates implementation plan, writes project code with judge feedback loop, and submits final experiment run.",
+      "summary": "Creates implementation plan, writes project code with judge feedback loop, and submits final experiment run. Use after code-survey in both Idea and Plan branches.",
+      "stages": [
+        "experiment"
+      ],
+      "tools": [
+        "read_file",
+        "search_project",
+        "write_file"
+      ],
+      "primaryIntent": "experiment",
+      "intents": [
+        "experiment"
+      ],
+      "capabilities": [
+        "research-planning"
+      ],
+      "domains": [
+        "general"
+      ],
+      "keywords": [
+        "inno-experiment-dev",
+        "experiment dev",
+        "research-planning",
+        "inno",
+        "experiment",
+        "dev",
+        "creates",
+        "implementation",
+        "plan",
+        "writes",
+        "project",
+        "code"
+      ],
+      "source": "builtin",
+      "status": "verified",
+      "upstream": {
+        "repo": "dr-claw",
+        "path": "skills/inno-experiment-dev",
+        "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+      },
+      "resourceFlags": {
+        "hasReferences": true,
+        "hasScripts": false,
+        "hasTemplates": false,
+        "hasAssets": false,
+        "referenceCount": 3,
+        "scriptCount": 0,
+        "templateCount": 0,
+        "assetCount": 0,
+        "optionalScripts": false
+      },
+      "legacy": {
+        "dirPath": "inno-experiment-dev",
+        "skillFile": "skills/inno-experiment-dev/SKILL.md",
+        "topLevelGroup": "Standalone",
+        "collection": "Experiment Dev",
+        "domain": "General"
+      }
+    },
+    {
+      "id": "inno-figure-gen",
+      "name": "inno-figure-gen",
+      "version": "1.0.0",
+      "description": "Generate/edit images with Nano Banana Pro (Gemini 3 Pro Image).",
+      "summary": "Generate/edit images with Nano Banana Pro (Gemini 3 Pro Image). Use for image create/modify requests incl. edits. Supports text-to-image + image-to-image; 1K/2K/4K; use --input-image.",
+      "stages": [
+        "publication"
+      ],
+      "tools": [
+        "read_file",
+        "search_project",
+        "write_file",
+        "run_terminal"
+      ],
+      "primaryIntent": "writing",
+      "intents": [
+        "writing"
+      ],
+      "capabilities": [
+        "visualization-reporting"
+      ],
+      "domains": [
+        "general"
+      ],
+      "keywords": [
+        "inno-figure-gen",
+        "paper writing",
+        "visualization-reporting",
+        "inno",
+        "figure",
+        "gen",
+        "generate",
+        "edit",
+        "images",
+        "nano",
+        "banana",
+        "pro"
+      ],
+      "source": "builtin",
+      "status": "verified",
+      "upstream": {
+        "repo": "dr-claw",
+        "path": "skills/inno-figure-gen",
+        "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+      },
+      "resourceFlags": {
+        "hasReferences": false,
+        "hasScripts": true,
+        "hasTemplates": false,
+        "hasAssets": false,
+        "referenceCount": 0,
+        "scriptCount": 1,
+        "templateCount": 0,
+        "assetCount": 0,
+        "optionalScripts": true
+      },
+      "legacy": {
+        "dirPath": "inno-figure-gen",
+        "skillFile": "skills/inno-figure-gen/SKILL.md",
+        "topLevelGroup": "Standalone",
+        "collection": "Paper Writing",
+        "domain": "Vision"
+      }
+    },
+    {
+      "id": "inno-paper-reviewer",
+      "name": "inno-paper-reviewer",
+      "version": "1.0.0",
+      "description": "Structured manuscript/grant review with checklist-based evaluation.",
+      "summary": "Structured manuscript/grant review with checklist-based evaluation. Use when writing formal peer reviews with specific criteria methodology assessment, statistical validity, reporting standards compliance (CONSORT/STROBE), and constructive...",
+      "stages": [
+        "publication"
+      ],
+      "tools": [
+        "read_file",
+        "search_project",
+        "write_file"
+      ],
+      "primaryIntent": "evaluation",
+      "intents": [
+        "evaluation",
+        "writing"
+      ],
+      "capabilities": [
+        "evaluation-benchmarking"
+      ],
+      "domains": [
+        "general"
+      ],
+      "keywords": [
+        "inno-paper-reviewer",
+        "paper review",
+        "evaluation-benchmarking",
+        "inno",
+        "paper",
+        "reviewer",
+        "structured",
+        "manuscript",
+        "grant",
+        "review",
+        "checklist",
+        "based"
+      ],
+      "source": "builtin",
+      "status": "verified",
+      "upstream": {
+        "repo": "dr-claw",
+        "path": "skills/inno-paper-reviewer",
+        "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+      },
+      "resourceFlags": {
+        "hasReferences": true,
+        "hasScripts": false,
+        "hasTemplates": false,
+        "hasAssets": false,
+        "referenceCount": 2,
+        "scriptCount": 0,
+        "templateCount": 0,
+        "assetCount": 0,
+        "optionalScripts": false
+      },
+      "legacy": {
+        "dirPath": "inno-paper-reviewer",
+        "skillFile": "skills/inno-paper-reviewer/SKILL.md",
+        "topLevelGroup": "Standalone",
+        "collection": "Paper Review",
+        "domain": "General"
+      }
+    },
+    {
+      "id": "inno-paper-writing",
+      "name": "inno-paper-writing",
+      "version": "1.0.0",
+      "description": "Creates formal academic research papers following IEEE/ACM formatting standards with proper structure, citations, and scholarly writing style.",
+      "summary": "Creates formal academic research papers following IEEE/ACM formatting standards with proper structure, citations, and scholarly writing style. Use when the user asks to write a research paper, academic paper, or conference paper on any top...",
+      "stages": [
+        "publication"
+      ],
+      "tools": [
+        "read_file",
+        "search_project",
+        "write_file"
+      ],
+      "primaryIntent": "writing",
+      "intents": [
+        "writing",
+        "research"
+      ],
+      "capabilities": [
+        "visualization-reporting"
+      ],
+      "domains": [
+        "general"
+      ],
+      "keywords": [
+        "inno-paper-writing",
+        "paper writing",
+        "visualization-reporting",
+        "inno",
+        "paper",
+        "writing",
+        "creates",
+        "formal",
+        "academic",
+        "research",
+        "papers",
+        "following"
+      ],
+      "source": "builtin",
+      "status": "verified",
+      "upstream": {
+        "repo": "dr-claw",
+        "path": "skills/inno-paper-writing",
+        "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+      },
+      "resourceFlags": {
+        "hasReferences": true,
+        "hasScripts": false,
+        "hasTemplates": false,
+        "hasAssets": false,
+        "referenceCount": 3,
+        "scriptCount": 0,
+        "templateCount": 0,
+        "assetCount": 0,
+        "optionalScripts": false
+      },
+      "legacy": {
+        "dirPath": "inno-paper-writing",
+        "skillFile": "skills/inno-paper-writing/SKILL.md",
+        "topLevelGroup": "Standalone",
+        "collection": "Paper Writing",
+        "domain": "General"
+      }
+    },
+    {
+      "id": "inno-reference-audit",
+      "name": "inno-reference-audit",
+      "version": "0.1.0",
+      "description": "This skill provides reference guidance for citation verification in academic writing.",
+      "summary": "This skill provides reference guidance for citation verification in academic writing. Use when the user asks about \"citation verification best practices\", \"how to verify references\", \"preventing fake citations\", or needs guidance on citati...",
+      "stages": [
+        "publication"
+      ],
+      "tools": [
+        "read_file",
+        "search_project",
+        "write_file",
+        "run_terminal"
+      ],
+      "primaryIntent": "evaluation",
+      "intents": [
+        "evaluation",
+        "writing"
+      ],
+      "capabilities": [
+        "evaluation-benchmarking",
+        "search-retrieval"
+      ],
+      "domains": [
+        "general"
+      ],
+      "keywords": [
+        "research",
+        "academic",
+        "citation",
+        "reference",
+        "inno-reference-audit",
+        "paper review",
+        "evaluation-benchmarking",
+        "search-retrieval",
+        "inno",
+        "audit",
+        "this",
+        "provides"
+      ],
+      "source": "builtin",
+      "status": "verified",
+      "upstream": {
+        "repo": "dr-claw",
+        "path": "skills/inno-reference-audit",
+        "revision": "8322dc4ef575affaa374aa7922c0a0971c6db7d7"
+      },
+      "resourceFlags": {
+        "hasReferences": true,
+        "hasScripts": true,
+        "hasTemplates": false,
+        "hasAssets": false,
+        "referenceCount": 4,
+        "scriptCount": 4,
+        "templateCount": 0,
+        "assetCount": 0,
+        "optionalScripts": true
+      },
+      "legacy": {
+        "dirPath": "inno-reference-audit",
+        "skillFile": "skills/inno-reference-audit/SKILL.md",
+        "topLevelGroup": "Standalone",
+        "collection": "Paper Review",
+        "domain": "General"
+      }
+    }
+  ],
+  "stageSkillMap": {
+    "survey": {
+      "base": [
+        "inno-deep-research",
+        "gemini-deep-research",
+        "academic-researcher",
+        "dataset-discovery",
+        "biorxiv-database"
+      ],
+      "byTaskType": {
+        "analysis": [
+          "inno-deep-research",
+          "gemini-deep-research",
+          "academic-researcher"
+        ],
+        "exploration": [
+          "inno-deep-research",
+          "gemini-deep-research",
+          "dataset-discovery",
+          "biorxiv-database",
+          "academic-researcher"
+        ]
+      }
+    },
+    "ideation": {
+      "base": [
+        "inno-pipeline-planner",
+        "inno-prepare-resources",
+        "inno-deep-research",
+        "dataset-discovery",
+        "inno-idea-generation",
+        "inno-idea-eval",
+        "biorxiv-database",
+        "academic-researcher"
+      ],
+      "byTaskType": {
+        "analysis": [
+          "inno-idea-generation",
+          "inno-idea-eval",
+          "inno-deep-research",
+          "academic-researcher"
+        ],
+        "exploration": [
+          "inno-idea-generation",
+          "inno-code-survey",
+          "inno-deep-research",
+          "dataset-discovery",
+          "biorxiv-database",
+          "academic-researcher"
+        ],
+        "implementation": [
+          "inno-prepare-resources"
+        ]
+      }
+    },
+    "experiment": {
+      "base": [
+        "inno-code-survey",
+        "dataset-discovery",
+        "inno-experiment-dev",
+        "inno-experiment-analysis",
+        "bioinformatics-init-analysis"
+      ],
+      "byTaskType": {
+        "implementation": [
+          "inno-experiment-dev",
+          "bioinformatics-init-analysis"
+        ],
+        "analysis": [
+          "inno-experiment-analysis",
+          "bioinformatics-init-analysis"
+        ],
+        "exploration": [
+          "inno-code-survey",
+          "dataset-discovery",
+          "inno-deep-research",
+          "biorxiv-database"
+        ]
+      }
+    },
+    "publication": {
+      "base": [
+        "inno-paper-writing",
+        "inno-figure-gen",
+        "inno-paper-reviewer",
+        "inno-reference-audit",
+        "inno-rclone-to-overleaf",
+        "scientific-writing",
+        "ml-paper-writing",
+        "inno-grant-proposal"
+      ],
+      "byTaskType": {
+        "writing": [
+          "inno-paper-writing",
+          "inno-figure-gen",
+          "scientific-writing",
+          "ml-paper-writing",
+          "inno-grant-proposal"
+        ],
+        "analysis": [
+          "inno-paper-reviewer",
+          "inno-reference-audit",
+          "inno-deep-research"
+        ],
+        "delivery": [
+          "inno-rclone-to-overleaf"
+        ]
+      }
+    },
+    "promotion": {
+      "base": [
+        "making-academic-presentations"
+      ],
+      "byTaskType": {
+        "scripting": [
+          "making-academic-presentations"
+        ],
+        "rendering": [
+          "making-academic-presentations"
+        ],
+        "narration": [
+          "making-academic-presentations"
+        ],
+        "delivery": [
+          "making-academic-presentations"
+        ]
+      }
+    }
+  },
+  "note": "Trimmed to 10 skills for DQN10; upstream revisions preserved."
+}

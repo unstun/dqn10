@@ -1,0 +1,39 @@
+# ----------------------------------------------------------------------------
+# DQN10 gitignore
+# ----------------------------------------------------------------------------
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.ipynb_checkpoints/
+
+# 训练/推理产物
+runs/
+runs*/
+*.log
+*.pth
+*.ckpt
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.fls
+*.fdb_latexmk
+
+# .pipeline 下除 papers/ 外都追踪;PDF 本地副本不提交
+.pipeline/papers/*.pdf

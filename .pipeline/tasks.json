@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "updated": "2026-04-08",
+  "tasks": [
+    {
+      "id": "research-precompact-hook",
+      "priority": "medium",
+      "status": "todo",
+      "tag": "research",
+      "title": "调研 PreCompact hook 最佳实践 / 别人怎么在 compact 前强制落盘",
+      "notes": "第一版 DQN10 未实现 pre-compact.sh。需联网搜 Claude Code 社区实践：如何在 /compact 触发前强制写 agent_handoff.md。参考 claudefa.st、code.claude.com/docs/en/hooks。"
+    }
+  ]
+}
