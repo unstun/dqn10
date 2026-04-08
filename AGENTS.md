@@ -1,7 +1,8 @@
 # DQN10 研究项目
 
 > 继承自 DQN9 的算法/论文硬规则 + 机器狗RL 的 Conductor/Worker 会话协议。
-> `CLAUDE.md ≡ AGENTS.md`（逐行一致,见硬规则 #22)。
+> `CLAUDE.md ≡ AGENTS.md`(逐行一致,见硬规则 #23)。
+> 作用域:`/Users/sun/tongbu/study/phdproject/dqn/DQN10/**` (Mac)、`$HOME/DQN10/**` (Ubuntu GPU)。
 
 ## 你是谁
 
@@ -37,60 +38,116 @@
 ## 硬规则(MUST/NEVER)
 
 1. MUST:每次回复以"Dr Sun,"开头。
-2. MUST:默认中文回复。思考语言为专业流英语,交互与注释语言为中文。注释须 ASCII 风格分块,代码如顶级开源库作品——"代码是写给人看的,只是顺便让机器运行"。
-3. MUST:论文正文先中文写作,定稿后统一英文润色。README 等项目文档也用中文。
-4. MUST:改文件前输出 3–7 步计划 + 文件清单 + 风险 + 验证,等"开始"后再动手。
-5. MUST:结束前追加 agent_handoff.md(Stop hook 会验证,不写会被 block)。
-6. MUST:每完成一个有意义的变更就 git commit。
-7. MUST:修改代码或论文文件前,先 `git add . && git commit && git push`,确保远端有可回退快照。严禁未 push 就开始改文件(无例外)。
-8. MUST:experiment_ledger.md 和 literature_bank.md 只追加,NEVER 覆写;读取用 tail / Grep,NEVER 全文读。
-9. MUST:文献 PDF / 数据集 / 实验产物 NEVER 保存到 `/tmp`,必须保存到项目内(论文 PDF → `.pipeline/papers/<CitationKey>.pdf`)。
-10. MUST:主动提问——遇到不确定的研究决策、技术选型、实验设计时,先问 Dr Sun 而不是自行决定。
-11. MUST:专业问题先验证——联网搜索(GitHub、arXiv、官方文档)或本地文献核实后再答,禁止凭 AI 记忆。不确定的标注不确定。
-12. MUST:学术问题必须先读论文——回答本项目相关学术问题前,必须读 `paper/main.tex` 及相关章节,基于实际内容回答。
-13. MUST:引用核查四步(`search_web` / Semantic Scholar 定位 → DOI 2 源确认 → `curl -LH "Accept: application/x-bibtex" https://doi.org/<DOI>` → 确认 claim 存在);失败标 `[CITATION NEEDED]`。严禁凭记忆生成 BibTeX。
-14. MUST:代码搜索优先使用 ACE(`mcp__augment-context-engine__codebase-retrieval`)做语义理解;`Grep` 用于精确匹配。禁用 Bash 调 grep/rg。ACE 报错即回退到 Grep+Glob,不阻塞流程。
-15. MUST:所有训练/推理参数通过 `configs/*.json` 管理。代码改动须在 `configs/` 新增 `repro_YYYYMMDD_<topic>.json`(纯文档改动豁免)。
-16. MUST:消融实验结束后在 `runs/ablation_logs/` 写 `ablation_YYYYMMDD_<topic>.md`。
-17. MUST:远端训练前必须完整 `rsync` 同步代码(含 `configs/`、代码包、`scripts/`),严禁未同步就启动远端训练(无例外)。
-18. MUST:推理前必须确认 checkpoint 文件正确,不能依赖"默认最新"。
-19. MUST:复杂任务(多文件修改、跨模块调研、论文+代码联动)默认启用多 Agent 并行;简单单文件任务无需启用。
-20. MUST:联网使用 Playwright MCP;付费墙站点(tandfonline/sciencedirect/springer)走 `browser_navigate` → `browser_wait_for 5s` → `browser_snapshot`。
-21. MUST:SSH 远程执行 conda 必须 `conda run --cwd <项目绝对路径> -n ros2py310 python ...`。
-22. MUST:`CLAUDE.md ≡ AGENTS.md`(逐行一致)。修改任一文件后必须同步另一个,并跑 `bash .claude/scripts/check-agents-sync.sh` 验证。
-23. NEVER:在一个会话里串联多个任务。
-24. NEVER:修改 project_truth.md(除非当前角色是 Conductor)。
-25. NEVER:同一时间有两个 Claude Code 会话操作本项目。
-26. NEVER:论文中使用括号补充说明(缩写定义除外,如"深度强化学习(DRL)");改用"即""由…构成""如图…所示"。
-27. NEVER:公式中使用 `grid_size` 等代码风格变量名,须用 $\Delta c$、$\delta$、$\epsilon$ 等标准记法;独立公式末尾不加标点。
-28. NEVER:论文中出现"张量""编码"描述地图输入,用"地图""记录"替代;禁用 EDT 等实现层术语,用"欧氏距离"等数学概念。
-29. NEVER:论文方法论写 enumerate 列表式段落,须散文叙事。
-30. NEVER:捏造术语、过度包装简单概念、使用推销性语言。术语须溯源文献。
-31. NEVER:用户质疑时盲目顺从。必须回查原文事实后再回应,禁止放弃正确判断。
+2. MUST:默认中文回复,思考语言为专业流英语,交互与注释语言为中文。
+3. MUST:注释须 ASCII 风格分块,代码如顶级开源库作品——"代码是写给人看的,只是顺便让机器运行"。
+4. MUST:论文正文先中文写作,定稿后统一英文润色,README 等项目文档也用中文。
+5. MUST:改文件前输出 3–7 步计划 + 文件清单 + 风险 + 验证,等"开始"后再动手。
+6. MUST:结束前追加 `agent_handoff.md`(Stop hook 会验证,不写会被 block)。
+7. MUST:每完成一个有意义的变更就 git commit。
+8. MUST:修改代码或论文文件前,先 `git add . && git commit && git push`,确保远端有可回退快照(无例外)。
+9. MUST:`experiment_ledger.md` 和 `literature_bank.md` 只追加,NEVER 覆写,读取用 tail / Grep,NEVER 全文读。
+10. MUST:文献 PDF / 数据集 / 实验产物 NEVER 保存到 `/tmp`,必须保存到项目内(论文 PDF → `.pipeline/papers/<CitationKey>.pdf`)。
+11. MUST:遇到不确定的研究决策、技术选型、实验设计时,先问 Dr Sun 而不是自行决定。
+12. MUST:专业问题先联网搜索(GitHub / arXiv / 官方文档)或本地文献核实后再答,禁止凭 AI 记忆,不确定的标注不确定。
+13. MUST:学术问题必须先读 `paper/main.tex` 及相关章节,基于实际内容回答。
+14. MUST:引用核查四步——`search_web` / Semantic Scholar 定位 → DOI 2 源确认 → `curl -LH "Accept: application/x-bibtex" https://doi.org/<DOI>` → 确认 claim 存在,失败标 `[CITATION NEEDED]`,严禁凭记忆生成 BibTeX。
+15. MUST:代码搜索优先使用 ACE(`mcp__augment-context-engine__codebase-retrieval`)做语义理解,`Grep` 用于精确匹配,禁用 Bash 调 grep/rg,ACE 报错即回退到 Grep + Glob 不阻塞流程。
+16. MUST:所有训练/推理参数通过 `configs/*.json` 管理,代码改动须在 `configs/` 新增 `repro_YYYYMMDD_<topic>.json`(纯文档改动豁免)。
+17. MUST:消融实验结束后在 `runs/ablation_logs/` 写 `ablation_YYYYMMDD_<topic>.md`。
+18. MUST:远端训练前必须完整 `rsync` 同步代码(含 `configs/`、`ugv_dqn/`、`scripts/`),严禁未同步就启动远端训练(无例外)。
+19. MUST:推理前必须确认 checkpoint 文件正确,不能依赖"默认最新"。
+20. MUST:复杂任务(多文件修改、跨模块调研、论文+代码联动)默认启用多 Agent 并行,简单单文件任务无需启用。
+21. MUST:联网使用 Playwright MCP,付费墙站点(tandfonline / sciencedirect / springer)走 `browser_navigate` → `browser_wait_for 5s` → `browser_snapshot`。
+22. MUST:SSH 远程执行 conda 必须 `conda run --cwd <项目绝对路径> -n ros2py310 python ...`(不 cd 会用错目录)。
+23. MUST:`CLAUDE.md ≡ AGENTS.md`(逐行一致),修改任一文件后必须同步另一个,并跑 `bash .claude/scripts/check-agents-sync.sh` 验证。
+24. MUST:代码包名为 `ugv_dqn`(不是 `amr_dqn`),所有 import 使用 `from ugv_dqn.xxx import ...`。
+25. MUST:论文润色工作流——多 Agent 并行搜同领域真实句子 → 提炼句式特征 → 按句式改写并标注对标原句 → 自检删掉是否丢失信息。
+26. NEVER:在一个会话里串联多个任务。
+27. NEVER:修改 `project_truth.md`(除非当前角色是 Conductor)。
+28. NEVER:同一时间有两个 Claude Code 会话操作本项目。
+29. NEVER:论文中使用括号补充说明(缩写定义除外,如"深度强化学习(DRL)"),改用"即""由…构成""如图…所示"。
+30. NEVER:公式中使用 `grid_size` 等代码风格变量名,须用 $\Delta c$、$\delta$、$\epsilon$ 等标准记法,独立公式末尾不加标点。
+31. NEVER:论文中出现"张量""编码"描述地图输入,用"地图""记录"替代,禁用 EDT 等实现层术语,用"欧氏距离"等数学概念。
+32. NEVER:论文方法论写 enumerate 列表式段落,须散文叙事。
+33. NEVER:捏造术语、过度包装简单概念、使用推销性语言,术语须溯源文献。
+34. NEVER:用户质疑时盲目顺从,必须回查原文事实后再回应,禁止放弃正确判断。
+35. NEVER:SS-RRT* 专家引入任何 cost-to-go 泄漏或回退(Dr Sun 视为造假)。
 
 ## 术语规范
 
-见 `.pipeline/terminology.md`。核心:
-- "Dijkstra 目标距离图"(goal distance map),禁用 cost-to-go field/map / 目标距离场
-- "MD" = MHA + Duel(本文方法),不要与 "DM" = Duel+Munchausen 混淆
+详见 `.pipeline/terminology.md`。核心约定:
+
+| 中文 | 英文 | 禁用 |
+|---|---|---|
+| Dijkstra 目标距离图 | goal distance map | cost-to-go field / map、目标距离场 |
+| MD | MHA + Duel(本文方法) | 勿与 DM = Duel + Munchausen 混淆 |
+
+观测通道:occupancy、goal distance;奖励塑形:potential function defined as the geodesic goal distance。
 
 ## 环境
 
 | 平台 | 用途 | Conda | 说明 |
 |---|---|---|---|
-| Mac (Apple Silicon) | 代码开发/论文写作 | `/opt/homebrew/Caskroom/miniforge/base` | `KMP_DUPLICATE_LIB_OK=TRUE` 已设环境变量;PyTorch 为 CPU 版 |
+| Mac (Apple Silicon) | 代码开发 / 论文写作 | `/opt/homebrew/Caskroom/miniforge/base` | PyTorch 为 CPU 版,`KMP_DUPLICATE_LIB_OK=TRUE` 已设 |
 | Ubuntu (远程 GPU) | 训练 + 推理 | `$HOME/miniconda3` | RTX 4090,环境 `ros2py310` |
+
+## 远程服务器
+
+| 优先级 | 名称 | Host | 用户 | GPU | 项目路径 |
+|---|---|---|---|---|---|
+| 1 | uhost-1nwalbarw6ki | 117.50.216.203 | ubuntu | RTX 4090 (24GB) | `$HOME/DQN10/` |
+| 2 | ubuntu-zt | (ZeroTier) | sun | — | 长期训练 + checkpoint 存档 |
+
+连接方式优先 paramiko(本地无 sshpass)。凭证不写入 repo,见 `.pipeline/project_truth.md` 机密区。
+
+## 常用命令
+
+```bash
+PROJ=$HOME/DQN10; ENV=ros2py310
+
+# 训练(后台)
+nohup conda run --cwd $PROJ -n $ENV python train.py --profile $PROFILE \
+  > runs/${PROFILE}_$(date +%Y%m%d_%H%M%S).log 2>&1 &
+
+# 推理
+conda run --cwd $PROJ -n $ENV python infer.py --profile $PROFILE
+
+# 自检
+conda run --cwd $PROJ -n $ENV python train.py --self-check
+conda run --cwd $PROJ -n $ENV python infer.py --self-check
+
+# 完成判定
+ls $PROJ/runs/$EXP/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || echo RUNNING
+```
+
+## 实验数据结构(必读)
+
+数据链路:`configs/*.json` → `infer.py --profile <name>` → `runs*/infer/<out>/` 生成 CSV。
+
+**SR 模式 vs Quality 模式**(禁止混用):
+- **SR 模式**:BK 可达筛选,全量 50+ runs,**仅汇报成功率**——对应 `table2_kpis_mean.csv`,config 参数 `filter_all_succeed: false`。
+- **Quality 模式**:N-算法全成功筛选,runs 较少(Long ~5–12, Short ~17–30),成功率恒为 100%,**仅汇报路径质量**(长度、曲率、计算时间)——对应 `table2_kpis_mean_filtered.csv`,config 参数 `filter_all_succeed: true`。
+
+**算法名称映射**:`CNN-DQN+Duel` → MD-DQN(本文方法)、`Hybrid A*` → Improved HA*(Dang 2022)、`RRT*` → SB-RRT*(Yoon 2018);LO-HA* 已弃用。
+
+**CSV 三层**:`table2_kpis.csv`(原始表)、`table2_kpis_mean.csv`(均值表,SR)、`table2_kpis_mean_filtered.csv`(筛选均值表,Quality)。
+
+**核心对比** config 含 `baselines: ["hybrid_astar", "rrt_star"]`,一次跑 3 算法 × 50 runs = 150 行,按 `Algorithm name` 列拆分;**消融** config 无 baselines,每 config 1 个 RL 变体 × 50 runs = 50 行,跨目录对比。
+
+**runs20260408_{dqn,ddqn}**:§4.5 cnn-dqn vs cnn-ddqn 底座消融数据(12 train + 24 infer),当前主要对比来源。
 
 ## 踩坑
 
-- WebFetch 与 WebSearch 不混在同一批并行调用(WebFetch 403 会级联拖垮同批 WebSearch);每批并行最多 2 个同类调用。
+- WebFetch 与 WebSearch 不混在同一批并行调用(WebFetch 403 会级联拖垮同批 WebSearch),每批并行最多 2 个同类调用。
 - PDF 链接大概率解析失败,优先 HTML 版本(如 `arxiv.org/html/`)。
 - `conda run` 不会自动 cd,必须 `--cwd <绝对路径>`。
 - 远端 `~/.bashrc` 的 conda init 块必须放在 interactive guard (`case $- in`) 之前。
-- LaTeX:`xelatex` 支持中文注释;提交版用 `pdflatex`;缺包 `sudo tlmgr install <pkg>`。
+- LaTeX:`xelatex` 支持中文注释,提交版用 `pdflatex`,缺包 `sudo tlmgr install <pkg>`。
+- argparse 默认 `forest_baseline_rollout=True`,config 必须显式写 `forest_baseline_rollout: false` 才能关 MPC。
+- g1t03 跨容差(train 1.0m + infer 0.3m)是设计如此,不要误判为错误。
 
 ## Compact 须知
 
-IMPORTANT:如果 context 使用过半,先写一个中间 handoff(进度快照)到 agent_handoff.md。
+IMPORTANT:如果 context 使用过半,先写一个中间 handoff(进度快照)到 `agent_handoff.md`。
 compact 前 MUST 先完成 handoff 写入——handoff 落盘后不受 compact 影响。
-(第一版 DQN10 未实现 PreCompact hook 强制拦截;见 `.pipeline/tasks.json` 中的调研 TODO。)
+(第一版 DQN10 未实现 PreCompact hook 强制拦截,见 `.pipeline/tasks.json` 中的调研 TODO。)

@@ -1,0 +1,55 @@
+{
+  "_comment": "DQN10 repository bootstrap anchor (non-runnable metadata).",
+  "_purpose": "Satisfies CLAUDE.md hard rule #16 — every code-change session must leave a repro_YYYYMMDD_<topic>.json trail. This file freezes the migration scope so future sessions can reproduce the DQN10 fork state.",
+  "migration": {
+    "date": "2026-04-08",
+    "source": "/Users/sun/tongbu/study/phdproject/dqn/DQN9",
+    "destination": "/Users/sun/tongbu/study/phdproject/dqn/DQN10",
+    "git_remote": "https://github.com/unstun/dqn10.git",
+    "rebased_onto": "fcdc772 (GitHub auto-init placeholder README commit)"
+  },
+  "migrated_content": {
+    "code": ["ugv_dqn/", "train.py", "infer.py"],
+    "configs": ["configs/ (all *.json, ~1MB)"],
+    "scripts": ["scripts/ (all *.py / *.sh, ~260KB)"],
+    "paper": ["paper/ (main.tex + figures, ~99MB)"],
+    "experiments": {
+      "runs20260408_dqn":  "6.9GB, 12 train + 12 infer profiles (cnn-dqn base ablation)",
+      "runs20260408_ddqn": "7.0GB, 12 train + 12 infer profiles (cnn-ddqn base ablation)"
+    }
+  },
+  "skipped_content": {
+    "runs202643": "earlier paper-clean snapshot (not current §4.5 focus)",
+    "runs202642": "pre-clean dump superseded by runs202643",
+    "docs/experiment_framework.md": "Dr Sun: 评估框架不对,先不迁移",
+    "runs/": "old AM×DQfD / kt=0.2 ablation data (scripts aggregate_abl_amdqfd.py / aggregate_ablation_kt02.py / quality_analysis.py still reference DQN9 paths — fix only when those scripts are rerun)"
+  },
+  "claude_md_changes": {
+    "strategy": "merge DQN9 rules + DQN10 session protocol, one sentence per rule",
+    "target_lines": "<=200",
+    "actual_lines": 153,
+    "structure": "你是谁 → 会话启动 → 记忆地图 → 角色 → 硬规则(35) → 术语 → 环境 → 远程服务器 → 常用命令 → 实验数据结构 → 踩坑 → Compact须知",
+    "agents_md_sync": "bash .claude/scripts/check-agents-sync.sh PASS"
+  },
+  "path_fixes": [
+    "scripts/aggregate_20260408_raw.py : ROOT hardcoded Mac DQN9 → Path(__file__).parent.parent",
+    "scripts/plot_loss_20260408_modules.py : ROOT hardcoded Mac DQN9 → Path(__file__).parent.parent",
+    "scripts/auto_pipeline_cnn_dqn.sh : PROJ /home/ubuntu/DQN9 → /home/ubuntu/DQN10 (+ comment)",
+    "scripts/launch_12par_cnn_dqn.sh : PROJ /home/ubuntu/DQN9 → /home/ubuntu/DQN10",
+    "scripts/launch_24par_cnn_dqn_infer.sh : PROJ /home/ubuntu/DQN9 → /home/ubuntu/DQN10",
+    "scripts/collect_cnn_dqn_to_xlsx.py : docstring + --runs-root help text DQN9 → DQN10"
+  ],
+  "remaining_dqn9_references": {
+    "reason": "Scripts that consume old runs/ (not migrated) keep their DQN9 paths intentionally — will be rewritten when/if those experiments are rerun.",
+    "files": [
+      "scripts/deploy_server.py",
+      "scripts/quality_analysis.py",
+      "scripts/aggregate_abl_amdqfd.py",
+      "scripts/aggregate_ablation_kt02.py"
+    ]
+  },
+  "verification": {
+    "agents_sync": "bash .claude/scripts/check-agents-sync.sh",
+    "self_check":  "conda run --cwd /Users/sun/tongbu/study/phdproject/dqn/DQN10 -n ros2py310 python {train,infer}.py --self-check"
+  }
+}

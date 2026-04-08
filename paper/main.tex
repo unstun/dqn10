@@ -1,0 +1,760 @@
+% !TEX program = xelatex
+\documentclass{iopjournal}
+
+% ── 宏包（iopjournal.cls 已加载 graphicx, xcolor, hyperref）──
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{siunitx}
+\usepackage[caption=false]{subfig}
+\usepackage[section]{placeins}   % 浮动体不跨 section；subsection 级由手动 \FloatBarrier 控制
+\usepackage{dblfloatfix}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, calc, backgrounds}
+\usepackage{xeCJK}
+
+% ── CJK 字体 ──────────────────────────────────────────────────
+\IfFontExistsTF{Noto Serif CJK SC}{%
+  \setCJKmainfont{Noto Serif CJK SC}
+  \setCJKsansfont{Noto Sans CJK SC}
+  \setCJKmonofont{Noto Sans CJK SC}
+}{%
+  \setCJKmainfont{Songti SC}
+  \setCJKsansfont{Heiti SC}
+  \setCJKmonofont{Heiti SC}
+}
+
+\graphicspath{{media/}{figures/}}
+\sisetup{round-mode=places, round-precision=3}
+
+% ── 自定义命令 ─────────────────────────────────────────────────
+\newcommand{\ie}{\textit{i.e.}}
+\newcommand{\eg}{\textit{e.g.}}
+\newcommand{\etal}{\textit{et al.}}
+
+\begin{document}
+
+\articletype{Paper}
+
+% ══════════════════════════════════════════════════════════════
+\title{MD-DDQN：一种改进的面向森林场景的UGV深度强化学习运动规划方法}
+
+\author{Firstname Lastname$^1$, Firstname Lastname$^2$ and Firstname Lastname$^{2,*}$}
+
+\affil{$^1$Affiliation 1}
+
+\affil{$^2$Affiliation 2}
+
+\affil{$^*$Author to whom any correspondence should be addressed.}
+
+\email{e-mail@e-mail.com}
+
+\keywords{traversability, Ackermann UGV, deep reinforcement learning, motion planning}
+
+% ══════════════════════════════════════════════════════════════
+\begin{abstract}
+
+\end{abstract}
+
+% ══════════════════════════════════════════════════════════════
+\section{介绍}\label{sec:intro}
+
+近年来，随着林地巡检、生态监测及林下资源作业等任务需求的增加，地面无人车（UGV）在森林等非结构化环境中的自主通行能力面临着严峻挑战。与城市道路等具备清晰几何特征的结构化场景显著不同，林间环境通常具有地表起伏剧烈、障碍物（如树干）分布密集且无规则等特点。在这一复杂条件下，路径规划算法面临着双重压力：一方面需要在障碍物稠密的区域生成严格无碰撞的安全轨迹，另一方面需在极有限的狭窄间隙中实现灵活穿梭。这种对安全性与通过性的双重追求，运动规划算法的计算成本成为一大难题。
+
+现有的运动规划算法大致可分为三类：（1）传统算法；（2）优化算法；（3）基于强化学习的算法。
+
+\subsection{传统规划方法}
+
+传统规划方法在工程上应用广泛，包括基于图的方法和基于采样的方法等等。传统方法优点是原理成熟，缺点是路径易不连续、易陷局部最优、计算效率有限。
+
+其中，基于图搜索的方法中，Hybrid\,A*由于能够在搜索扩展过程中同步完成碰撞检测、并严格满足车辆（或车类机器人）运动学约束而被广泛采用。Jiang等人\cite{jiang2025hybrid}面向果园窄通道贴行导航，构建了``改进D*~Lite全局规划+窄段Hybrid\,A*局部重规划+轨迹平滑''的混合框架，从而在安全贴行与可执行性之间取得折中。Lian等人\cite{lian2023trajectory}针对狭窄环境代客泊车，先以增强Hybrid\,A*生成高质量初值，再引入非线性最优控制进行二次优化，以在受限空间内获得更可行、更平滑的泊车轨迹。Pang等人\cite{pang2022curvature}在自动泊车场景中提出基于Hybrid\,A*的反向搜索与碰撞剪枝策略，在保证曲率连续与终端精度的同时提升规划效率。Thoresen等人\cite{thoresen2021path}将地形可通行性评估融入Hybrid\,A*代价函数，使UGV在复杂地形上更倾向于选择风险更低、可通过性更强的路径。Zhang等人\cite{zhang2024twostage}面向露天矿大尺度场景提出两阶段二分Hybrid\,A*，通过障碍多边形化以及对转向角/步长的二分搜索，降低扩展冗余并加速规划。总体而言，图搜索算法能够较高效地给出可行路线，但在长路径下搜索过程中引入碰撞检测，往往会显著增加计算开销，进而导致规划用时过长等局限。
+
+基于采样的规划方法通常以PRM、RRT及其改进RRT*为代表，通过在配置空间进行随机采样、并以图结构增量扩展搜索，从而在高维场景中高效获得可行路径。面向越野/非结构化环境中``植被遮挡导致地形难感知、地形不确定导致通行性难保证、风险难以显式量化、可靠性评估代价高''等问题，研究者普遍在RRT*框架上引入地形推断、可靠性约束与风险引导等机制：Jian等人\cite{jian2024path}提出PE-RRT*，将支撑平面估计与RRT*的采样/扩展过程紧密耦合，并据此实现植被遮挡地形下的实时、可行且更安全的路径生成；Jiang等人\cite{jiang2022r2rrt}提出R2-RRT*，在RRT*搜索过程中显式引入不确定地形条件下的可靠性指标（如任务机动可靠度MMR）作为约束/评价准则，以获得更鲁棒的越野任务规划结果；Tian等人\cite{tian2023driving}提出PF-RRT*（势引导的RRT*），通过势场对障碍物与越野风险进行连续表征，并在采样偏置与代价设计中实现安全性与效率的权衡；Yin等人\cite{yin2023efficient}则在RRT*框架中耦合替代模型以近似可靠性评估、减少高代价仿真调用，从而提升越野可靠性路径规划的整体计算效率。
+
+\subsection{基于优化的算法}
+
+基于优化的算法主要包括遗传算法（GA）、蚁群优化算法（ACO）、粒子群算法（PSO）以及人工蜂群算法（ABC）等，这类方法通常通过构建目标函数与约束、并借助群体智能的迭代搜索，在复杂环境中获得近似最优路径。围绕多机器人协同、非完整约束车辆的可跟踪性、以及栅格环境的搜索效率等问题，相关研究多从``改进单一优化器''与``混合多种群智能''两条思路展开：Cai等人\cite{cai2024cooperative}面向分布式多移动机器人协同场景，提出一种基于优化ACO的合作路径规划方法，并通过改进搜索与信息素更新机制，以提升多机器人规划的协同性与整体效率。Huo等人\cite{huo2024smooth}面向Ackermann转向移动机器人，提出改进ACO结合B样条曲线的平滑规划思路，并将路径平滑与可跟踪需求纳入优化过程，以获得更连续、可执行的运动轨迹。Li等人\cite{li2023mixing}将ACO与ABC进行混合设计，用于求解移动机器人路径规划问题，并利用两者在探索/开发上的互补性，以兼顾全局搜索能力与局部寻优效果。Xu等人\cite{xu2022quartic}引入四次Bezier过渡曲线并结合改进PSO，构建面向平滑路径的优化求解框架，并以曲率高阶连续与转向过渡约束为核心，以改善路径连续性与转弯过渡质量。Yildirim和Akay\cite{yildirim2025efficient}在栅格地图框架下设计改进ABC算法用于路径规划，并引入路径线性化与局部搜索等机制，以减少不必要拐角、提升网格环境中的搜索效率与路径质量。
+
+\subsection{基于强化学习的方法}
+
+基于强化学习（RL）的路径规划方法通常以Q-learning或SARSA等时序差分方法，以及DQN等深度强化学习为代表，其核心是通过与环境交互学习状态---动作价值，从而获得导航策略；围绕``鲁棒性、可扩展性、可解释的评价机制、以及非结构化场景适应性''等目标，相关工作大多在价值函数表示、奖励/评价设计与启发式先验融合上做文章：Kumar等人\cite{kumar2025dsqn}提出DSQN（DeepSpiking Q-Network），将脉冲神经元机制引入深度Q学习框架，并在同一决策过程中融合全局目标与局部观测信息，以提升移动机器人路径规划的鲁棒性与综合性能；Li和Wang\cite{li2025iqaco}将Q评估机制显式融入ACO，提出改进的IQACO，以Q值驱动的节点评价替代/弱化传统信息素主导的判断，并缓解参数敏感与搜索稳定性问题，从而提升规划质量与收敛表现；Maoudj和Hentout\cite{maoudj2020optimal}基于Q-learning构建最优路径规划框架，并通过更高效的学习策略设计，在保证无碰撞与最优性的同时尽量缩短求解时间；Sichkar\cite{sichkar2019reinforcement}则围绕移动机器人全局路径规划任务，对Q-learning与SARSA等强化学习算法的实现与效果差异进行对比分析，并从学习效率与路径生成特性等角度给出经验性结论；Xu等人\cite{xu2026rl}提出强化学习驱动的启发式路径规划思路，面向非结构化环境中的自动化特种车辆需求，利用传统启发式先给出初始规划结果、再由RL进行调整优化，以避免纯RL在早期学习阶段的低效与不稳定；Zhou等人\cite{zhou2018dqn}设计基于DQN的移动机器人路径规划方法，通过训练网络逼近动作价值函数，并据此在密集环境中选择动作序列以获得有效的全局路径。然而，将RL直接应用于森林狭窄通道规划仍存在突出困难：其一，阿克曼车辆的非完整约束与近障安全距离约束会导致离散动作集合中大量动作在当前状态下不可行，若缺少约束处理机制，策略容易选择``Q值看似较高但实际不可执行''的动作，引发碰撞、振荡或效率下降；其二，在非结构化环境中可通行区域提取容易受地表起伏、落叶堆积、点云稀疏及噪声影响，若生成的地图或可通行性估计不可靠，学习策略难以稳定收敛并保证安全。
+
+\subsection{本文贡献}
+
+
+% ══════════════════════════════════════════════════════════════
+\section{相关工作}\label{sec:related}
+
+\subsection{经典路径规划}\label{sec:related:classical}
+
+经典路径规划方法可分为两大类：基于采样的算法和基于搜索的算法。
+
+\textbf{基于采样的规划器。}
+快速扩展随机树 RRT 及其渐近最优变体 RRT*~\cite{karaman2011sampling}通过随机采样和局部引导构建无碰撞构型树。概率路线图 PRM~\cite{kavraki1996probabilistic}在自由空间中构建可复用的图结构，并通过图搜索回答查询。尽管这两类方法均具有概率完备性，但在复杂环境中收敛到近最优路径需要大量采样，导致计算时间随障碍物密度的增加而急剧增长~\cite{yin2023efficient,jiang2022r2rrt}。
+
+\textbf{基于搜索的规划器。}
+基于栅格的 A* 算法及其运动学可行扩展版本 Hybrid A*~\cite{dolgov2010path}对状态空间进行离散化，并利用启发式代价函数进行节点扩展。Lattice 规划器进一步将扩展限制在预计算的动力学可行运动基元集合上~\cite{pivtoraiko2009differentially}。Hybrid A* 已被应用于自主泊车~\cite{lian2023trajectory}和越野无人地面车辆导航~\cite{thoresen2021path}；然而，其运行时间随地图分辨率的提高和航向离散化的组合爆炸而急剧增长，限制了其在大面积稠密林地中的实时适用性。
+
+\textbf{林地环境中的局限性。}
+上述两类方法在稠密林地地图中部署时均存在以下根本性缺陷：第一，计算时间随障碍物密度的增加而急剧增长；第二，基于采样的方法在缺乏充分重连操作时可能收敛到局部次优路径；第三，两类方法均无法从经验中学习——每次新查询都从零开始，无法实现跨回合的规划经验摊销。
+
+\subsection{面向导航的深度强化学习}\label{sec:related:drl}
+
+上述经典方法的局限性推动了向基于学习方法的转变。深度强化学习提供了一种替代范式，通过与环境的交互端到端地学习策略。开创性的深度 Q 网络 DQN~\cite{mnih2015human}证明了卷积神经网络能够从原始感知输入近似动作价值函数。Double DQN~\cite{van2016deep}缓解了 Q 学习固有的过估计偏差，而 Dueling 架构~\cite{wang2016dueling}通过分解价值流和优势流来提升样本效率。
+
+多项研究已将深度强化学习应用于移动机器人导航~\cite{zhou2018dqn,kumar2025dsqn,xu2026rl}。Tai 等人~\cite{tai2017virtual}使用原始深度图像训练连续动作策略以实现无地图导航；Zhu 等人~\cite{zhu2017target}通过目标驱动的视觉输入增强了深度强化学习。更近期的工作将基于栅格的 DQN 方法与经典启发式相结合，以在结构化环境中进行规划~\cite{li2025iqaco,maoudj2020optimal}。
+
+尽管取得了上述进展，现有的深度强化学习导航研究大多假设\emph{全向}运动学或在简单开阔的环境中运行。少有研究在动作层面强制执行非完整约束，如 Ackermann 模型或自行车模型，这造成了学习策略与物理可实现轨迹之间的差距。当动作空间未尊重车辆运动学极限时，仿真到真实的迁移问题进一步加剧。
+
+\subsection{奖励塑形与演示学习}\label{sec:related:reward}
+
+将深度强化学习应用于导航的一个关键挑战在于有效训练信号的设计。稀疏的目标到达奖励在大状态空间中导致收敛缓慢。基于势函数的奖励塑形 PBRS~\cite{ng1999policy}提供了一种原则性的方法来注入领域知识而不改变最优策略：塑形奖励被定义为连续状态之间势函数的差值。导航中一种自然的势函数是通过 Dijkstra 算法在栅格占用图上计算的\emph{测地线目标距离}，该距离编码了障碍物感知的目标邻近度，并在整个地图中产生稠密且信息丰富的梯度。
+
+当演示器——如经典规划器——可用时，Deep Q-learning from Demonstrations (DQfD)~\cite{hester2018deep}通过预填充经验回放缓冲区中的专家转移并利用时序差分、监督和正则化损失的组合对网络进行预训练来加速训练。DQfD 在 Atari 游戏和机器人操作中表现出色~\cite{hester2018deep}，但其在复杂环境中运动学受约束车辆导航中的应用仍未被充分探索。课程学习策略~\cite{bengio2009curriculum}提供了互补的优势，通过逐步增加任务难度来促进学习，但需要精心设计进度调度方案。
+
+\subsection{强化学习中的动作掩码}\label{sec:related:mask}
+
+除奖励设计外，确保学习策略遵守物理和安全约束同样重要。在许多现实控制问题中，给定状态下存在一部分无效或不安全的动作。Huang 和 Onta\~{n}\'on~\cite{huang2022closer}对策略梯度算法中的无效动作掩码（Invalid Action Masking, IAM）进行了系统研究，表明在 softmax 之前将不可行动作的 logit 设为负无穷——使对应概率降为零——能够保持策略梯度的收敛保证，同时显著加速训练。在基于价值的方法中，等价操作为将不可行动作的 Q 值设为 $-\infty$，从而在 $\arg\max$ 选择中排除这些动作。动作掩码已在即时策略游戏~\cite{huang2022closer}和多智能体场景中得到广泛采用，但其在面向运动学受约束导航的基于价值深度强化学习中的集成——其中掩码同时编码碰撞避免和转向角限制——尚未受到充分关注。
+
+安全约束强化学习方法，如通过拉格朗日松弛求解的约束 MDP~\cite{altman1999constrained}，提供了实现安全行为的替代路径。然而，这些方法引入了额外的优化复杂度，而动作掩码以可忽略的计算开销强制执行硬约束。
+
+\subsection{本文的定位}\label{sec:related:positioning}
+
+前述综述表明，经典规划器、基于深度强化学习的导航、奖励塑形、演示学习和动作掩码均已被分别深入研究，但很少被整合为一个统一框架。据作者所知，此前尚无研究同时集成以下组件：第一，非完整自行车运动学动作约束；第二，基于 Dijkstra 的测地线奖励塑形；第三，来自经典规划器演示的 DQfD 预训练；第四，基于运动学约束的动作掩码与双圆碰撞检测，将上述全部组件纳入面向稠密林地环境中无人地面车辆导航的统一深度强化学习路径规划框架。因此，本文的贡献在于\emph{系统层面}：每个组件均基于成熟技术，但其组合使得规划器在成功率、路径质量和计算时间方面均优于经典基线和消融变体。
+
+% ══════════════════════════════════════════════════════════════
+\section{方法}\label{sec:method}
+
+如图~\ref{fig:framework}所示，本文提出一种面向森林场景的UGV路径规划框架，整体流程分为三个阶段。第一阶段，利用FAST-LIO2算法融合激光雷达与IMU数据，构建先验三维点云地图；第二阶段，对点云地图进行可通行性评估与分割，将三维几何信息投影为二维占据栅格地图；第三阶段，将路径规划建模为马尔可夫决策过程，在栅格地图上设计基于MD-DDQN的深度强化学习策略，结合DQfD专家预训练与安全动作掩码，生成满足阿克曼运动学约束的无碰撞路径。下文依次介绍车辆运动学建模与碰撞检测、MDP状态空间与动作空间定义、奖励函数设计、网络架构、训练机制与动作掩码。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\columnwidth]{image1.png}
+\caption{面向森林场景的UGV运动规划框架}
+\label{fig:framework}
+\end{figure}
+
+\subsection{地面无人车与传感器}
+
+实验平台采用阿克曼转向的地面无人车（UGV），如图~\ref{fig:platform}所示。底盘为前轮转向、后轮驱动的阿克曼结构，配备充气轮胎与减震悬架以适应林间起伏地形。感知传感器为Livox~Mid-360三维激光雷达，内置IMU，以30°俯角安装于车体前方，提供360°视场角与最远100\,m的测距能力。车载计算单元为Jetson AGX Orin，运行Ubuntu 20.04与ROS1 Noetic，负责SLAM建图与路径规划的在线计算。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.35\columnwidth]{fig2.pdf}
+\caption{地面无人车实验平台}
+\label{fig:platform}
+\end{figure}
+
+\subsection{基于FAST-LIO2的先验点云地图的建立}
+
+自主导航要求机器人在未知环境中同步估计自身位姿并构建环境地图，这一问题通常由同步定位与建图（SLAM）技术解决。本文采用FAST-LIO2\cite{xu2022fastlio2}作为建图框架，该方法基于紧耦合迭代卡尔曼滤波器，跳过传统手工特征提取步骤，直接将原始点云配准到地图，利用环境几何特征提高配准精度。地图维护方面，FAST-LIO2采用增量式k-d树（ikd-Tree），支持点的增量插入、删除与动态重平衡，在保持地图实时更新的同时降低计算开销。
+
+在建图过程中，根据估计的运动对单次扫描内点云进行去畸变，并将各帧点云通过刚体变换统一到全局坐标系下进行增量拼接，生成三维点云先验地图。具体地，第$k$帧点云经刚体变换投影至全局坐标系：
+\begin{equation}
+  p_{k,i}^{g} = R_k\, p_{k,i} + t_k
+\end{equation}
+其中$\mathcal{P}_{k} = \{p_{k,i}\}_{i=1}^{N_k}$为第$k$帧点云集合，$p_{k,i} = [x_{k,i},y_{k,i},z_{k,i}]^\mathsf{T}$定义于激光雷达坐标系，$R_k \in SO(3)$与$t_k \in \mathbb{R}^{3}$分别为FAST-LIO2输出的旋转矩阵与平移向量，$p_{k,i}^{g}$为变换后的全局坐标。所有变换后的点集被增量式地融合至全局地图中。
+
+在点云地图建立后，对其进行体素降采样以降低点云密度、减少后续计算量，并施加统计离群点移除滤波（SOR）以滤除传感器噪声产生的离群点，得到适用于后续可通行性分析的干净点云地图。
+
+\subsection{基于可通行评估的点云分割}
+
+在获取干净的点云地图后，需要从中分割出可通行区域，作为后续路径规划的输入。传统方法多依赖几何高度差或简单阈值进行障碍物检测，但在森林等非结构化环境中，由于地表起伏、落叶堆积、点云稀疏及传感器噪声等因素，容易造成可通行区域的误判。本文使用基于可通行性分析的点云分割方法，将三维点云先验地图投影为二维占据栅格地图，为后续路径规划提供基础\cite{feng2025constraint}。
+
+
+给定全局坐标系下的点云地图$\mathcal{M} = \{\mathbf{p}_i\}_{i=1}^{N}$，其中$\mathbf{p}_i = [x_i, y_i, z_i]^\top$。首先剔除高度$z_i > z_{\max}$的点以排除与地面通行无关的点云。对每个保留点$\mathbf{p}_i$，取半径$r$内的邻域$\mathcal{N}_r(\mathbf{p}_i)$，逐一计算与邻域点$\mathbf{p}_j$之间的坡度角：
+\begin{equation}
+  \theta_{ij} = \arctan\!\left(\frac{|z_i - z_j|}{\sqrt{(x_i-x_j)^2+(y_i-y_j)^2}}\right)
+\end{equation}
+若地面无人车最大爬坡角为$\theta_{\max}$，则$\theta_{ij} > \theta_{\max}$意味着$\mathbf{p}_i$到$\mathbf{p}_j$方向不可通行。但林地地面常有落叶、碎石覆盖，直接用硬阈值判定会造成大量误判。为此引入松弛因子$\lambda \in [0,1]$，统计邻域内超过坡度阈值的比例：
+\begin{equation}
+  r_{\text{slope}} = \frac{1}{|\mathcal{N}(\mathbf{p}_i)|}\sum_{\mathbf{p}_j \in \mathcal{N}(\mathbf{p}_i)} \mathbb{I}(\theta_{ij} > \theta_{\max})
+\end{equation}
+其中$\mathbb{I}(\cdot)$为指示函数。当$r_{\text{slope}} \leq \lambda$时，所在的局部地形虽然粗糙但仍在地面无人车的通过能力范围内，将$\mathbf{p}_i$标记为可通行；反之标记为不可通行。完成可通行性标注后，将所有标记为不可通行的点投影至$xy$平面，以分辨率$\Delta c = \SI{0.1}{m}$生成二维占据栅格地图，作为后续马尔可夫决策过程建模的环境输入。
+
+\subsection{地面无人车路径规划}
+
+\subsubsection{车辆参数与运动学建模}
+
+
+本文采用等效自行车模型描述阿克曼转向车辆的非完整运动约束，如图~\ref{fig:kinematics}所示：(a)为运动学模型示意，(b)标注了地面无人车的轴距$L$与外形尺寸等关键几何参数。以后轴中心为参考点，车辆状态为$s=(x,y,\theta)$，其中$(x,y)$为位置，$\theta$为航向角；控制输入为$u=(v,\delta)$，其中$v$为后轴纵向速度，$\delta$为前轮转角。在低速纯滚动无侧滑假设下，运动学方程为：
+\begin{equation}
+  \begin{aligned}
+    \dot{x} &= v\cos\theta \\
+    \dot{y} &= v\sin\theta \\
+    \dot{\theta} &= \frac{v\tan\delta}{L}
+  \end{aligned}
+\end{equation}
+
+\begin{figure}[!htbp]
+\centering
+\subfloat[]{\includegraphics[height=0.35\columnwidth]{fig3a_cropped.pdf}}
+\hspace{0.08\columnwidth}
+\subfloat[]{\includegraphics[height=0.35\columnwidth]{image4.png}}
+\caption{地面无人车运动学模型与几何参数}
+\label{fig:kinematics}
+\end{figure}
+
+\subsubsection{碰撞检测}\label{sec:collision}
+
+由于地面无人车具有不可忽略的物理尺寸，路径规划过程中需考虑完整车体与障碍物之间的碰撞关系。矩形足迹虽能精确描述车体轮廓，但其碰撞判定涉及多边形相交运算，计算开销较大。为此，本文采用双圆足迹近似车体包络，如图~\ref{fig:dual_circle} 所示：沿车体纵轴布置两个半径为~$r$ 的圆，分别覆盖前、后关键区域，完全包络车体矩形轮廓。环境预先计算欧式距离，记录每个栅格中心到最近障碍物中心的欧氏距离。碰撞检测时，计算两圆心处的距离值~$d_1$、$d_2$，与圆的半径进行比较：
+\begin{equation}
+  \min(d_1,\, d_2) \leq r + \epsilon
+\end{equation}
+其中~$\epsilon = \frac{\sqrt{2}}{2}\Delta c$ 为栅格边缘到格栅中心的最远距离，$\Delta c$ 为栅格分辨率。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.42\columnwidth]{image5.png}
+\caption{车辆双圆 footprint 近似示意图}
+\label{fig:dual_circle}
+\end{figure}
+
+\subsubsection{马尔可夫决策过程建模}
+
+本文将地面无人车路径规划建模为马尔可夫决策过程$M=(S,A,P,R)$，其中$S$、$A$、$P$、$R$分别对应状态空间、动作空间、转移概率和奖励函数。时刻$t$，地面无人车观测状态$s_t \in S$并执行动作$a_t \in A$；环境按$P(s_{t+1}|s_t,a_t)$完成状态转移，同时给出即时奖励$r_{t+1}=R(s_t,a_t,s_{t+1})$。
+
+\paragraph{（1）状态空间}
+
+观测 $o_t$ 由标量向量 $\mathbf{F}_t$ 与双通道地图 $\mathbf{M}_t$ 组成：
+\begin{equation}
+  o_t = \left( \mathbf{F}_t, \mathbf{M}_t \right)
+\end{equation}
+
+标量部分 $\mathbf{F}_t \in \mathbb{R}^{11}$ 包含 $11$ 个归一化分量：
+\begin{equation}
+  \mathbf{F}_t = \big[ x, y, g_x, g_y , \sin\theta, \cos\theta, v, \delta, \phi, \alpha, d_{\min} \big]
+\end{equation}
+其中 $(x, y)$ 为车辆在全局坐标系下的位置，$(g_x, g_y)$ 为目标位置，航向角以 $(\sin\theta, \cos\theta)$ 双分量表示，$v$ 与 $\delta$ 分别为纵向车速与前轮转角，$\phi$ 为当前位置到目标的测地线距离，$\alpha$ 为目标相对方位角，$d_{\min}$ 为车体到最近障碍物的最小间隙。
+
+地图部分 $\mathbf{M}_t$ 由双通道地图构成：
+\begin{equation}
+  \mathbf{M}_t = \big[ \mathbf{O}_t; \mathbf{G}_t \big]
+\end{equation}
+其中 $\mathbf{O}_t$ 为占据栅格，$\mathbf{G}_t$ 为通过Dijkstra计算得到的目标距离图，后者记录各栅格经无碰撞路径到达目标点的距离，如图~\ref{fig:map_channels}所示。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\columnwidth]{fig5.pdf}
+\caption{双通道地图输入的示意图。(a)~占据栅格 $\mathbf{O}_t$，其中黑色区域为障碍物，白色为可通行区域；(b)~目标距离图 $\mathbf{G}_t$，其中各栅格沿无碰撞路径到达目标点的距离。}
+\label{fig:map_channels}
+\end{figure}
+\paragraph{（2）动作空间}
+
+本文采用离散动作空间。将转向角速度等间距离散为7个值、纵向加速度离散为5个值，二者组合构成动作空间$A$：
+\begin{equation}
+  A = \{(\dot{\delta}_i, a_j) \mid \dot{\delta}_i \in \Delta_{\dot{\delta}},\, a_j \in \Delta_a\}
+\end{equation}
+其中转向角速度$\dot{\delta}_{\max}=60^\circ/\text{s}$，7个值均匀分布于$[-\dot{\delta}_{\max},\, \dot{\delta}_{\max}]$：
+\begin{equation}
+  \Delta_{\dot{\delta}} = \left\{-\dot{\delta}_{\max},\, -\tfrac{2}{3}\dot{\delta}_{\max},\, -\tfrac{1}{3}\dot{\delta}_{\max},\, 0,\, \tfrac{1}{3}\dot{\delta}_{\max},\, \tfrac{2}{3}\dot{\delta}_{\max},\, \dot{\delta}_{\max}\right\}
+\end{equation}
+纵向加速度$a_{\max}=1.5\,\text{m/s}^2$，5个值均匀分布于$[-a_{\max},\, a_{\max}]$：
+\begin{equation}
+  \Delta_a = \left\{-a_{\max},\, -\tfrac{1}{2}a_{\max},\, 0,\, \tfrac{1}{2}a_{\max},\, a_{\max}\right\}
+\end{equation}
+控制步长$dt=0.05\,\text{s}$，最大速度$v_{\max}=2.0\,\text{m/s}$，最大前轮转角$\delta_{\max}=27^\circ$。
+
+
+
+\paragraph{（3）奖励函数的设计}
+
+在 MDP 框架中，奖励函数用于评估智能体在状态$s_t$下执行动作$a_t$的价值。在以往大多数研究中，车辆接近目标区域时获得正奖励，碰撞障碍物时获得负奖励，而其他状态的奖励值均设为零，由此导致奖励稀疏问题。为此，本文引入复合奖励函数$R_t$，使智能体在每步状态转移中持续获得奖励反馈。$R_t$由五项组成：
+\begin{equation}\label{eq:reward_total}
+  R_t = r_1 + r_2 + r_3 + r_4 + r_5
+\end{equation}
+其中$r_1$为进度奖励，$r_2$为时间步惩罚，$r_3$为平滑性惩罚，$r_4$为障碍物惩罚，$r_5$为终端奖励。
+
+进度奖励$r_1$引导车辆向目标靠近，每步奖励正比于该步前后到目标的 Dijkstra 距离之差：
+\begin{equation}\label{eq:reward_prog}
+  r_1 = k_p \bigl(D_t - D_{t+1}\bigr)
+\end{equation}
+其中$D_t$为第$t$步车辆位置到目标的 Dijkstra 最短路径距离，$k_p$为增益系数。车辆靠近目标时$D_t > D_{t+1}$，$r_1$为正；远离目标时$r_1$为负。
+
+时间步惩罚$r_2$在每步施加恒定负值，促使车辆尽快到达目标：
+\begin{equation}\label{eq:reward_time}
+  r_2 = -k_\tau
+\end{equation}
+其中$k_\tau > 0$。
+
+平滑性惩罚$r_3$约束控制输出的平滑程度，由转向角变化、加速度变化和曲率三项构成：
+\begin{equation}\label{eq:reward_smooth}
+  r_3 = r_{3\delta} + r_{3a} + r_{3\kappa}
+\end{equation}
+其中$r_{3\delta}$惩罚相邻时刻的转向角变化量：
+\begin{equation}\label{eq:reward_steer}
+  r_{3\delta} = -k_\delta\bigl(\delta_{t+1}-\delta_t\bigr)^2
+\end{equation}
+其中$k_\delta > 0$。$r_{3a}$惩罚加速度的变化，并乘以速度缩放因子$(v_{t+1}/v_{\max})^2$使低速时惩罚减小：
+\begin{equation}\label{eq:reward_acc}
+  r_{3a} = -k_a\bigl(a_t - a_{t-1}\bigr)^2\!\left(\frac{v_{t+1}}{v_{\max}}\right)^{\!2}
+\end{equation}
+其中$k_a > 0$。$r_{3\kappa}$惩罚大转向角：
+\begin{equation}\label{eq:reward_curv}
+  r_{3\kappa} = -k_\kappa \tan^2\!\delta_{t+1}
+\end{equation}
+其中$k_\kappa > 0$。上述三项共同作用，抑制急转弯和突变加速，使规划路径更加平滑。
+
+障碍物惩罚$r_4$使车辆在接近障碍物时受到递增的排斥信号。车辆采用第~\ref{sec:collision}~节所述的双圆碰撞检测模型，前、后圆心到最近障碍物的欧氏距离分别为$d_1$、$d_2$，圆半径为$r$。取两圆的最小净间距
+\begin{equation}\label{eq:d_obs}
+  d_{\text{obs}} = \min(d_1 - r,\; d_2 - r)
+\end{equation}
+作为车辆与障碍物之间的安全裕度。当$d_{\text{obs}}$小于安全距离阈值$d_s$时，惩罚按反比函数增长：
+\begin{equation}\label{eq:reward_obs}
+  r_4 = -\min\!\left(\bar{r}_o,\;\; k_o\!\left(\frac{1}{d_{\text{obs}}+\varepsilon}-\frac{1}{d_s+\varepsilon}\right)\right)
+\end{equation}
+该形式借鉴人工势场中排斥力随距离反比递增的思想：在$d_{\text{obs}} = d_s$处惩罚恰好为零，$d_{\text{obs}}$越小惩罚越大，上界$\bar{r}_o$防止数值发散。当$d_{\text{obs}} \geq d_s$时$r_4 = 0$。
+
+终端奖励$r_5$在回合终止时给予固定奖惩：
+\begin{equation}\label{eq:reward_term}
+  r_5 =
+  \begin{cases}
+    +R_{\mathrm{g}}  & \text{到达目标} \\[2pt]
+    -R_{\mathrm{c}}   & \text{碰撞} \\[2pt]
+    -R_{\mathrm{s}} & \text{停滞超时}
+  \end{cases}
+\end{equation}
+其中$R_{\mathrm{g}}$、$R_{\mathrm{c}}$、$R_{\mathrm{s}} > 0$。
+
+\subsubsection{动作掩码}\label{sec:masking}
+
+奖励塑形为 Q 网络提供了方向引导，但无法保证每步所选动作的安全性。在 $|\mathcal{A}|=35$ 的离散动作空间中，运动学的非完整约束使得任意状态下均可能存在多个导致碰撞的动作。动作掩码在策略输出端排除这些不可行动作~\cite{huang2022closer}。定义状态~$s$ 下的可行动作集$\mathcal{A}_{\mathrm{adm}}(s) \subseteq \mathcal{A}$ 与二值掩码 $\mathbf{m}(s) \in \{0,1\}^{|\mathcal{A}|}$，$m_a(s)=1$ 当且仅当 $a \in \mathcal{A}_{\mathrm{adm}}(s)$，将不可行动作的 Q 值置为负无穷：
+\begin{equation}\label{eq:masked_q}
+  \tilde{Q}(s,a) = Q(s,a) + (1 - m_a(s)) \cdot (-\infty)
+\end{equation}
+使 $\epsilon$-贪心策略在训练与推理中均只从可行动作中选择。
+
+可行性由前向仿真判定。对候选动作~$a$，以当前状态为起点，在自行车运动学模型下以恒定控制输入执行 $H$ 步仿真，预测时域为 $H \cdot \Delta t$。仿真轨迹逐步经第~\ref{sec:collision}~节的双圆碰撞模型检测，任一步碰撞即判定该动作不可行。
+
+训练与推理共享同一动作选择机制。首先取 Q 值最大的动作 $a_0 = \arg\max_a Q(s,a)$ 并通过前向仿真检查其可行性；若~$a_0$ 不可行，依次检查 Q 值排名前~$K$ 的候选动作；若仍无可行动作，则对全部动作计算可行掩码，取 $a^{*} = \arg\max_{a \in \mathcal{A}_{\mathrm{adm}}(s)} Q(s,a)$；若可行集为空，则放宽约束至仅保留无碰撞动作并重新选择；当上述所有策略均失败时，选取目标距离最小且无碰撞的动作；若所有动作均导致碰撞，则选取障碍物距离最大的动作并承受碰撞惩罚。
+
+动作掩码同样作用于 Double DQN 的时序差分目标，使动作选择仅在可行动作上进行：
+\begin{equation}\label{eq:masked_target}
+  \left\{
+  \begin{aligned}
+    m &= \min(n,\, T - t) \\
+    a^{*} &= \arg\max_{a'\in\mathcal{A}_{\mathrm{adm}}(s_{t+m})}Q_{\theta}(s_{t+m},a') \\
+    y_t &= \sum_{k=0}^{m-1}\gamma^{k}r_{t+k}
+           + (1 - d_{t+m})\,\gamma^{m}\,Q_{\theta^{-}}\!(s_{t+m},a^{*})
+  \end{aligned}
+  \right.
+\end{equation}
+其中 $T$ 为回合终止时刻，$d_{t+m}$ 在 $s_{t+m}$ 为终止状态时取 $1$、否则取 $0$；回合在 $n$ 步内终止时 $m < n$ 且 $d_{t+m}=1$，目标退化为已观测奖励之和。若不在目标中施加掩码，式~\eqref{eq:masked_target}~中的 $\arg\max$ 可能落在不可行动作上，使目标 Q 值虚高并导致训练不稳定~\cite{van2016deep}。
+
+\subsubsection{MD-DDQN 网络与训练}\label{sec:network}
+
+Q 网络接收由占据栅格图与目标距离图构成的二通道地图与标量特征向量两类输入，输出各离散动作的 Q 值。如图~\ref{fig:architecture}~所示，网络由三部分组成：卷积神经网络、多头自注意力模块与 Dueling 输出头部。输出的 Q 值经第~\ref{sec:masking}~节所述的动作掩码筛选后得到最终动作。
+
+\input{figures/fig_architecture}
+
+\paragraph{(1) 卷积神经网络}
+
+地图 $\mathbf{M}_t$ 经三层卷积提取空间特征，输出 $3\times3$ 特征图，各层参数见图~\ref{fig:architecture}。标量向量 $\mathbf{F}_t$ 在注意力模块之后与空间特征拼接。
+
+\paragraph{(2) 多头自注意力}\label{sec:mha}
+
+卷积输出的 $3\times3$ 特征图展平为 9 个 token，构成矩阵 $\boldsymbol{E}\in\mathbb{R}^{9\times C}$，其中 $C$ 为通道数。每个 token 对应特征图中一个空间位置的 $C$ 维特征。
+
+$\boldsymbol{E}$ 经三组投影矩阵 $\boldsymbol{W}^Q$、$\boldsymbol{W}^K$、$\boldsymbol{W}^V$ 分别得到查询向量、键向量与值向量~\cite{vaswani2017attention}：
+\begin{equation}
+  \boldsymbol{Q}=\boldsymbol{E}\boldsymbol{W}^Q,\quad
+  \boldsymbol{K}=\boldsymbol{E}\boldsymbol{W}^K,\quad
+  \boldsymbol{V}=\boldsymbol{E}\boldsymbol{W}^V
+\end{equation}
+查询与键的点积计算任意两个空间位置之间的注意力分数，经缩放与 softmax 归一化后作为注意力权重，对值向量加权求和：
+\begin{equation}\label{eq:mha}
+  \boldsymbol{Z} = \mathrm{softmax}\!\Bigl(\frac{\boldsymbol{Q}\boldsymbol{K}^\top}{\sqrt{d_k}}\Bigr)\boldsymbol{V}
+\end{equation}
+其中 $d_k$ 为键向量的维度。当 $d_k$ 较大时点积的幅度随之增大，将 softmax 函数推入梯度极小的区域~\cite{vaswani2017attention}，故除以 $\sqrt{d_k}$ 加以抵消。
+
+本文采用 4 个注意力头，各头以独立的投影矩阵计算式~\eqref{eq:mha}，所得结果拼接后经线性投影恢复至 $C$ 维。该输出与原始输入 $\boldsymbol{E}$ 经残差连接后进行层归一化，送入 Dueling 分支。
+
+\paragraph{(3) Dueling 网络架构}\label{sec:md}
+
+本文在输出层引入 Dueling 架构~\cite{wang2016dueling}，将 Q 函数分解为状态价值 $V(s;\theta,\beta)$ 与动作优势 $A(s,a;\theta,\alpha)$，其中 $\theta$ 为共享层参数：
+\begin{equation}\label{eq:dueling_q}
+  Q(s,a) = V(s;\theta,\beta) + \Bigl(A(s,a;\theta,\alpha)
+           - \frac{1}{|\mathcal{A}|}\sum_{a'}A(s,a';\theta,\alpha)\Bigr)
+\end{equation}
+若直接令 $Q = V + A$，对 $V$ 加任意常数并从 $A$ 减去相同常数不改变 $Q$ 的输出，导致分解不唯一~\cite{wang2016dueling}。减去优势均值可约束该平移自由度；虽然 $V$ 与 $A$ 不再严格对应各自的理论定义，但优势值仅需以均值速度变化，优化稳定性优于减去最大值的替代方案~\cite{wang2016dueling}。在许多状态下动作选择对后续回报影响甚微，而状态价值的准确估计对基于自举的时序差分方法始终至关重要。与单流架构每次仅更新所选动作的 Q 值不同，Dueling 分解使每次 TD 更新同时改善 $V$ 的估计，且该优势随动作空间增大而更显著——本文的 35 维离散动作空间正体现了这一特性。
+
+\paragraph{(4) 学习算法与优化}\label{sec:ddqn}
+
+学习目标在时序差分框架上包含两项改进。Double DQN~\cite{van2016deep}将动作选择与价值评估分别交由在线网络与目标网络完成，抑制单网络 $\max$ 算子的价值过估计。此外，将单步时序差分扩展为 $n$ 步回报~\cite{sutton1988learning,sutton2018reinforcement}，累加 $n$ 步实际奖励后以目标网络估值补全，完整表达式及终止截断处理见式~\eqref{eq:masked_target}。
+
+训练时从经验回放缓冲区均匀采样小批量 $\mathcal{B}$~\cite{mnih2015human}，以 Huber 损失~\cite{huber1964robust}度量预测 $Q$ 值与目标之间的偏差：
+\begin{equation}\label{eq:huber}
+  \mathcal{L}_{\mathrm{TD}} = \frac{1}{|\mathcal{B}|}
+    \sum_{i\in\mathcal{B}} \ell_{\mathrm{Huber}}\!\bigl(Q_{\theta}(s_i,a_i)-y_i\bigr)
+\end{equation}
+其中 $y_i$ 在反向传播时视为常量~\cite{mnih2015human}。探索策略方面，由于 DQfD 预训练~\cite{hester2018deep}已赋予网络基本的路径规划能力，$\varepsilon$ 初值设为 $0.6$，低于 Mnih 等人~\cite{mnih2015human}的标准初值 $1.0$。超参数取值见表~\ref{tab:train_params}。
+
+\begin{table}[!htbp]
+\centering
+\caption{训练超参数}
+\label{tab:train_params}
+\begin{tabular}{ll}
+\toprule
+参数 & 数值 \\
+\midrule
+优化器                    & Adam~\cite{kingma2015adam}（$\beta_1\!=\!0.9,\;\beta_2\!=\!0.999$） \\
+学习率                    & $5\times10^{-4}$（固定） \\
+折扣因子 $\gamma$         & 0.995 \\
+批量大小                  & 128 \\
+经验回放容量              & $2\times10^{5}$ transitions \\
+目标网络更新间隔          & 1\,000 梯度步 \\
+梯度裁剪范数              & 10 \\
+$n$-step 回报步数         & 3 \\
+Huber 损失阈值 $\delta$   & 1.0 \\
+$\varepsilon_{\mathrm{start}}$  & 0.6 \\
+$\varepsilon_{\mathrm{end}}$    & 0.01 \\
+$\varepsilon$ 衰减回合数        & 8\,000（线性） \\
+DQfD 预训练步数           & 40\,000 \\
+训练回合数                & 10\,000 \\
+\midrule
+决策步长 $\Delta t$       & \SI{0.05}{s} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Deep Q-learning from Demonstrations (DQfD) 预训练}\label{sec:dqfd}
+
+在树干密集分布的林地环境中，通行条件苛刻，地面无人车在训练初期缺乏正向奖励。为此，在线交互开始前先利用专家示教对 Q 网络预训练，让其在与环境交互之前就知道大致该怎么走，跳过盲目探索阶段。
+
+预训练总损失由两项组成，分别是大间隔分类损失和交叉熵损失：
+\begin{equation}\label{eq:dqfd_pretrain}
+  \mathcal{L}_{\mathrm{pre}} =
+    \mathcal{L}_{\mathrm{margin}} + \mathcal{L}_{\mathrm{CE}}
+\end{equation}
+大间隔分类损失要求演示小批量 $\mathcal{B}_{\mathrm{D}}$ 中专家动作 $a_{i}^{E}$ 对应的 Q 值比其余动作中的最大值高出至少 $m$：
+\begin{equation}\label{eq:margin_loss}
+  \mathcal{L}_{\mathrm{margin}} = \frac{1}{|\mathcal{B}_{\mathrm{D}}|}
+    \sum_{i\in\mathcal{B}_{\mathrm{D}}}
+    \max\!\bigl(0,\;\max_{a\neq a_{i}^{E}}Q(s_i,a) + m - Q(s_i,a_{i}^{E})\bigr)
+\end{equation}
+式~\eqref{eq:margin_loss} 为铰链形式：$Q(s_i,a_i^E)$ 领先次优动作达 $m$ 后损失归零，该样本不再贡献梯度。为此引入交叉熵损失：
+\begin{equation}\label{eq:ce_loss}
+  \mathcal{L}_{\mathrm{CE}} = -\frac{1}{|\mathcal{B}_{\mathrm{D}}|}
+    \sum_{i\in\mathcal{B}_{\mathrm{D}}}
+    \log\frac{\exp Q(s_i,a_{i}^{E})}{\sum_{a'}\exp Q(s_i,a')}
+\end{equation}
+与大间隔损失不同，交叉熵在间隔满足后仍持续产生梯度，驱动 Q 值进一步向专家动作集中。
+
+在线交互开始后，总损失增加 TD 项：$\mathcal{L}=\mathcal{L}_{\mathrm{TD}}+\mathcal{L}_{\mathrm{margin}}+\mathcal{L}_{\mathrm{CE}}$。其中 $\mathcal{L}_{\mathrm{margin}}$ 与 $\mathcal{L}_{\mathrm{CE}}$ 仅对小批量中的演示样本计算，防止在线经验覆盖已习得的专家知识。
+
+示教轨迹通过基于运动学模型逐步生成：每一步对 35 个离散动作分别以恒定控制输入向前仿真 $H=15$ 步，从全程无碰撞的候选动作中选取末端目标距离最小者执行，重复至回合结束。仅保留成功到达目标的回合作为演示，存入回放缓冲区~\cite{hester2018deep}。算法~\ref{alg:training}~给出完整训练流程。
+
+\begin{algorithm}[!htbp]
+\caption{MD-DDQN 训练流程}
+\label{alg:training}
+\begin{algorithmic}[1]
+\Require 占据栅格地图 $\mathcal{G}$，Dijkstra 目标距离图 $D$，专家演示集 $\mathcal{D}_E$
+\Ensure 训练后的策略网络 $Q_\theta$
+\State 将 $\mathcal{D}_E$ 填充至回放缓冲区 $\mathcal{R}$（始终保留）
+\Statex \textbf{// 阶段一：DQfD 预训练}
+\For{$i = 1$ \textbf{to} $N_{\mathrm{pre}}$}
+    \State 从 $\mathcal{R}$ 采样 $\mathcal{B}$，计算 $\mathcal{L}_{\mathrm{pre}} = \mathcal{L}_{\mathrm{margin}} + \mathcal{L}_{\mathrm{CE}}$（公式~\ref{eq:dqfd_pretrain}）
+    \State $\theta \leftarrow \theta - \eta \nabla_\theta \mathcal{L}_{\mathrm{pre}}$
+\EndFor
+\Statex \textbf{// 阶段二：在线训练}
+\For{episode $= 1$ \textbf{to} $N_{\mathrm{ep}}$}
+    \State 随机采样起终点，初始化 $s_0$
+    \While{未终止}
+        \State 计算 $\mathbf{m}(s_t)$ \Comment{动作掩码，公式~(\ref{eq:masked_q})}
+        \If{$\mathrm{rand}() < \varepsilon$}
+            \State $a_t \sim \mathrm{Uniform}(\mathcal{A}_{\mathrm{adm}}(s_t))$
+        \Else
+            \State $a_t \leftarrow \arg\max_{a \in \mathcal{A}_{\mathrm{adm}}(s_t)} Q_\theta(s_t, a)$
+        \EndIf
+        \State 执行 $a_t$，观测 $(s_{t+1}, r_{t+1})$
+        \State 存储 $(s_t, a_t, r_{t+1}, s_{t+1}, \mathbf{m}(s_{t+1}))$ 至 $\mathcal{R}$
+        \State 采样 $\mathcal{B}$，计算 $\mathcal{L} = \mathcal{L}_{\mathrm{TD}} + \mathcal{L}_{\mathrm{margin}} + \mathcal{L}_{\mathrm{CE}}$，更新 $\theta$ \Comment{TD 目标使用公式~(\ref{eq:masked_target})}
+        \State 每 $T_{\mathrm{target}}$ 步：$\theta^{-} \leftarrow \theta$
+    \EndWhile
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+% ══════════════════════════════════════════════════════════════
+\section{实验与结果}\label{sec:experiments}
+
+\subsection{真实场景的建立}\label{ssec:real_scene_setup}
+
+为验证本文方法在真实林地环境中的适用性，在中国黑龙江省哈尔滨市东北林业大学森林试验场建立真实场景的先验点云地图，如图~\ref{fig:real_forest_scene}所示。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.45\columnwidth]{image14.png}
+\caption{东北林业大学森林试验场真实场景}
+\label{fig:real_forest_scene}
+\end{figure}
+
+按照第~\ref{sec:method}节所述流程，采用FAST-LIO2融合激光雷达与IMU数据构建三维点云先验地图，如图~\ref{fig:real_map}(a)所示。在点云先验地图基础上，采用第~\ref{sec:method}节提出的可通行性评估对点云进行分割，得到可通行点云，并将分割结果投影生成二维占据栅格地图，如图~\ref{fig:real_map}(b)所示。其中黑色表示不可通行区域，白色表示可通行区域。由图~\ref{fig:real_map}(b)可见，树干等静态障碍以及坡度较大的区域均被正确标记为不可通行，作为路径规划的输入。
+
+\begin{figure}[!htbp]
+\centering
+\subfloat[三维点云先验地图]{\includegraphics[width=0.48\columnwidth]{image15.png}}
+\hfill
+\subfloat[二维占据栅格地图]{\includegraphics[width=0.48\columnwidth]{image16.png}}
+\caption{真实林地先验地图：(a)~FAST-LIO2 构建的三维点云地图，(b)~经可通行性评估与投影生成的二维占据栅格地图}
+\label{fig:real_map}
+\end{figure}
+
+\FloatBarrier
+\subsection{对比算法与评价指标}\label{ssec:setup}
+仿真实验在第~\ref{ssec:real_scene_setup}~节所建立的 $30\times30$ 真实林地占据栅格地图上进行，训练在配备 NVIDIA RTX 4090 GPU 的 Ubuntu 工作站上完成，超参数配置见表~\ref{tab:train_params}。
+
+MD-DQN 与两种经典规划器对比：基于图搜索的 Improved Hybrid A*~\cite{dang2022improved} 和基于采样的 Spline-based RRT*~\cite{yoon2018spline}。三种算法使用同一占据栅格地图与双圆碰撞检测器，基线超时阈值为 $\SI{10}{s}$。
+
+每组实验独立运行 50 次，起终点对随机采样并按直线距离划分为远距离（$\geq\SI{18}{m}$）和近距离（$\SI{6}{m}$--$\SI{14}{m}$）两类。记录成功率、路径长度、平均曲率和计算时间四项指标，路径长度与平均曲率仅在三种算法均成功的子集上统计。
+
+
+
+\FloatBarrier
+\subsection{与基线方法的对比实验}\label{ssec:core}
+
+\begin{figure*}[!htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_43_trajectory.pdf}
+\caption{真实林地地图上的代表性路径轨迹对比：(a)~远距离任务，(b)~近距离任务。蓝色实线为 MD-DQN，橙色虚线为 Improved Hybrid A*，绿色点划线为 Spline-based RRT*。}
+\label{fig:trajectory}
+\end{figure*}
+
+\subsubsection{成功率结果}
+
+MD-DQN 在远距离任务上达到 86\% 的成功率，高于 Spline-based RRT*（68\%）和 Improved Hybrid A*（28\%）（表~\ref{tab:core_sr}）。近距离任务中三种算法差距缩小，MD-DQN 为 70\%，Spline-based RRT* 为 76\%，Improved Hybrid A* 为 64\%。Improved Hybrid A* 在远距离上的大量失败源于图搜索在稠密障碍物中的状态空间膨胀——搜索节点数随障碍物密度急剧增长，导致算法在 $\SI{10}{s}$ 超时内未能收敛。Spline-based RRT* 的随机采样使其优于图搜索，但在狭窄通道中采样效率仍然有限。
+
+\begin{table}[!htbp]
+\centering
+\caption{基线对比：成功率（50次运行）}
+\label{tab:core_sr}
+\begin{tabular}{lccc}
+\toprule
+路径距离 & MD-DQN & Improved HA* & SB-RRT* \\
+\midrule
+远距离（$\geq\SI{18}{m}$） & \textbf{86\%} & 28\% & 68\% \\
+近距离（$\SI{6}{m}$--$\SI{14}{m}$） & 70\% & 64\% & \textbf{76\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+MD-DQN 远距离任务的 7 次失败集中在起点位于地图边缘且需横穿整张地图的极长距离任务中——车辆在起点附近即陷入局部障碍物包围，未能找到正确的出发方向。近距离任务的 15 次失败则多出现在障碍物稠密的局部区域。这些失败与降采样观测的信息损失有关。
+
+
+\subsubsection{路径质量结果}
+
+在三算法均成功的远距离质量子集（$N=12$）中，MD-DQN 在路径长度、平均曲率和计算时间上均优于两种基线（表~\ref{tab:core_quality}）。计算时间的差距最为突出：MD-DQN 耗时 $\SI{0.410}{s}$，Spline-based RRT* 和 Improved Hybrid A* 分别为 $\SI{2.674}{s}$ 和 $\SI{13.190}{s}$，高出约 7 倍和 32 倍——经典规划器的搜索开销随规划距离增大，而 DRL 每步决策仅需一次前向传播。近距离质量子集（$N=23$）中 MD-DQN 同样在路径长度、曲率和计算时间上均优于两种基线。
+
+图~\ref{fig:trajectory}展示了代表性轨迹的对比。在穿越狭窄通道时，MD-DQN 的路径更短且更平滑，Spline-based RRT* 因随机采样产生了明显的锯齿轨迹，Improved Hybrid A* 则因离散化搜索出现了冗余迂回。
+
+\begin{table}[!htbp]
+\centering
+\caption{基线对比：路径质量（三算法过滤）}
+\label{tab:core_quality}
+\begin{tabular}{llccc}
+\toprule
+距离 & 指标 & MD-DQN & Improved HA* & SB-RRT* \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{远距离\\（$N=12$）}}
+  & 路径长度 / m       & \textbf{20.052} & 20.497 & 20.297 \\
+  & 平均曲率           & \textbf{0.1594} & 0.1839 & 0.3491 \\
+  & 计算时间 / s       & \textbf{0.410}  & 13.190 & 2.674  \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{近距离\\（$N=23$）}}
+  & 路径长度 / m       & \textbf{8.536}  & 9.599  & 9.363  \\
+  & 平均曲率           & \textbf{0.1647} & 0.3912 & 0.3093 \\
+  & 计算时间 / s       & \textbf{0.237}  & 3.266  & 0.928  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[!htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_43_bar.pdf}
+\caption{基线对比实验四项指标柱状图：(a)~成功率，(b)~路径长度，(c)~平均曲率，(d)~计算时间。深色为远距离，斜线为近距离。}
+\label{fig:core_bar}
+\end{figure*}
+
+\FloatBarrier
+\subsection{DRL 模块消融实验}\label{ssec:abl_module}
+
+为探究网络架构对规划性能的影响，本文对 4 种 DQN 架构变体进行消融实验。所有变体共享相同的 CNN 骨干网络与训练配置（$10\,000$ 回合），区别在于架构配置（标准、Dueling、MHA、MD）。推理阶段采用最小平滑 TD Loss 检查点（MinTD），使用随机种子 110，近距离和远距离各 50 次运行。
+
+\subsubsection{成功率结果}
+
+4 种变体的近距离成功率在 64\%--74\% 之间，远距离在 74\%--86\% 之间（表~\ref{tab:abl_module_sr}）。MD-DQN 在远距离任务上以 86\% 的成功率领先，而近距离各变体差距较小。架构差异对成功率有一定影响，但远小于训练组件（动作掩码与 DQfD 预训练）的作用——这一假设将在第~\ref{ssec:abl_amdqfd}~节得到验证。
+
+\begin{table}[!htbp]
+\centering
+\caption{DRL 模块消融实验：成功率（50次运行，MinTD 检查点）}
+\label{tab:abl_module_sr}
+\begin{tabular}{lcc}
+\toprule
+变体 & 近距离（$\SI{6}{m}$--$\SI{14}{m}$） & 远距离（$\geq\SI{18}{m}$） \\
+\midrule
+MD-DQN          & 70\% & \textbf{86\%} \\
+Duel-DQN        & 72\% & 84\% \\
+MHA-DQN         & \textbf{74\%} & 80\% \\
+DQN             & 64\% & 74\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.95\columnwidth]{fig_44_td_loss.pdf}
+\caption{4种 DQN 架构变体的训练 TD Loss 曲线（对数坐标）。MD-DQN 以蓝色粗线标出。4 种变体均在训练中后期收敛至稳定水平。}
+\label{fig:arch_td_loss}
+\end{figure}
+
+\subsubsection{路径质量结果}
+
+远距离质量子集（$N=30$）中，MD-DQN 路径最短（$\SI{24.176}{m}$）、曲率最优（0.1588），在更具挑战性的远距离场景下全面领先（表~\ref{tab:abl_module_quality}）。近距离质量子集（$N=20$）中，Duel-DQN 在路径长度（$\SI{9.539}{m}$）和曲率（0.1634）上略优，但各变体差距极小。综合远距离成功率与路径质量的优势，本文选择 MD-DQN 作为核心算法。
+
+\begin{table}[!htbp]
+\centering
+\caption{DRL 模块消融实验：路径质量（4 变体均成功子集）}
+\label{tab:abl_module_quality}
+\begin{tabular}{llcccc}
+\toprule
+距离 & 指标 & MD-DQN & Duel-DQN & MHA-DQN & DQN \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{远距离\\（$N=30$）}}
+  & 路径长度 / m  & \textbf{24.176} & 24.231 & 24.236 & 24.277 \\
+  & 平均曲率      & \textbf{0.1588} & 0.1601 & 0.1703 & 0.1613 \\
+  & 计算时间 / s  & 0.462 & 0.349 & 0.436 & \textbf{0.329} \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{近距离\\（$N=20$）}}
+  & 路径长度 / m  & 9.565 & \textbf{9.539} & 9.552 & 9.629 \\
+  & 平均曲率      & 0.1687 & \textbf{0.1634} & 0.1638 & 0.1973 \\
+  & 计算时间 / s  & 0.232 & \textbf{0.183} & 0.215 & 0.219 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[!htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_44_heatmap.pdf}
+\caption{4种 DQN 架构变体在五项指标上的归一化性能热力图。每列独立缩放至$[0,1]$，深绿色表示更优性能。变体按平均归一化得分降序排列，MD-DQN 行以蓝色边框高亮。}
+\label{fig:ablation_heatmap}
+\end{figure*}
+
+\FloatBarrier
+\subsection{动作掩码与 DQfD 组件消融实验}\label{ssec:abl_amdqfd}
+
+为量化动作掩码（AM）和 DQfD 预训练各自的贡献，设计三组对照实验（表~\ref{tab:abl_amdqfd_design}）。以 MD-DQN 为基础架构，每组在训练时分别移除 AM 或 DQfD，推理时统一启用动作掩码，从而隔离各组件在训练阶段的作用。实验使用随机种子 110，近距离和远距离各 50 次运行。
+
+\begin{table}[!htbp]
+\centering
+\caption{AM $\times$ DQfD 组件消融实验：变体设计}
+\label{tab:abl_amdqfd_design}
+\begin{tabular}{lcc}
+\toprule
+变体 & AM（护盾 + TD 掩码） & DQfD（预填充 + 预训练） \\
+\midrule
+完整版（AM + DQfD） & \checkmark & \checkmark \\
+去除 DQfD          & \checkmark & $\times$ \\
+去除 AM            & $\times$   & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{成功率结果}
+
+去除 DQfD 后，近距离成功率从 70\% 降至 42\%，远距离从 86\% 骤降至 28\%（表~\ref{tab:abl_amdqfd_sr}），远距离降幅达 58 个百分点，说明专家预训练为策略提供的初始引导不可或缺——纯随机探索在稠密障碍物中难以发现有效路径。去除 AM 后，近距离成功率降至 62\%（降 8 个百分点），远距离降至 56\%（降 30 个百分点）。两种训练组件的缺失对远距离任务的影响尤为显著。这一结果验证了第~\ref{ssec:abl_module}~节的假设：成功率主要由训练组件而非网络架构决定。
+
+\begin{table}[!htbp]
+\centering
+\caption{AM $\times$ DQfD 组件消融实验：成功率（50次运行，MinTD 检查点）}
+\label{tab:abl_amdqfd_sr}
+\begin{tabular}{lcc}
+\toprule
+变体 & 近距离（$\SI{6}{m}$--$\SI{14}{m}$） & 远距离（$\geq\SI{18}{m}$） \\
+\midrule
+完整版（AM + DQfD） & \textbf{70\%} & \textbf{86\%} \\
+去除 AM            & 62\% & 56\% \\
+去除 DQfD          & 42\% & 28\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+训练 TD Loss 曲线（图~\ref{fig:training_curve}）进一步佐证了上述结论。完整版在训练初期经历短暂的高 loss 阶段后迅速收敛至最低水平，表明 DQfD 预训练赋予的初始策略有助于 Q 网络快速稳定。去除 AM 的变体 TD Loss 在整个训练过程中持续偏高，说明缺少动作掩码约束使 Q 网络需要评估大量无效动作，增加了学习负担。去除 DQfD 的变体 loss 居中但波动较大，反映了纯随机探索导致的学习不稳定性。值得注意的是，成功率的退化幅度远大于 TD Loss 的差异（表~\ref{tab:abl_amdqfd_sr}），说明训练损失的绝对值与导航性能无直接对应。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.95\columnwidth]{fig_45_td_loss.pdf}
+\caption{三组变体的训练 TD Loss 曲线。完整版（蓝色）经短暂高 loss 过渡后迅速收敛至最低水平；去除 AM 的变体（橙色）loss 持续偏高；去除 DQfD 的变体（红色）loss 居中。}
+\label{fig:training_curve}
+\end{figure}
+
+\subsubsection{路径质量结果}
+
+远距离质量子集（$N=11$）中，完整版在路径长度（$\SI{26.217}{m}$）、曲率（0.1512）和计算时间（$\SI{0.495}{s}$）上均优于两组消融变体（表~\ref{tab:abl_amdqfd_quality}）。去除 AM 和去除 DQfD 的变体路径长度均为 $\SI{27.220}{m}$，较完整版长约 $\SI{1}{m}$。近距离质量子集（$N=17$）呈现相同趋势：完整版路径最短（$\SI{8.883}{m}$）、曲率最优（0.1560）。去除 DQfD 的变体在两个距离上路径质量均最差，进一步证实专家预训练不仅提高成功率，还改善了成功路径的质量。
+
+\begin{table}[!htbp]
+\centering
+\caption{AM $\times$ DQfD 组件消融实验：路径质量（3 变体均成功子集）}
+\label{tab:abl_amdqfd_quality}
+\begin{tabular}{llccc}
+\toprule
+距离 & 指标 & 完整版 & 去除 AM & 去除 DQfD \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{远距离\\（$N=11$）}}
+  & 路径长度 / m  & \textbf{26.217} & 27.220 & 27.220 \\
+  & 平均曲率      & \textbf{0.1512} & 0.1923 & 0.1950 \\
+  & 计算时间 / s  & \textbf{0.495}  & 0.664  & 0.733  \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{近距离\\（$N=17$）}}
+  & 路径长度 / m  & \textbf{8.883}  & 9.077  & 9.537  \\
+  & 平均曲率      & \textbf{0.1560} & 0.1742 & 0.1982 \\
+  & 计算时间 / s  & \textbf{0.231}  & 0.232  & 0.341  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure*}[!htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_45_bar.pdf}
+\caption{AM $\times$ DQfD 组件消融实验四项指标柱状图：(a)~成功率，(b)~路径长度，(c)~平均曲率，(d)~计算时间。深色为远距离，斜线为近距离。}
+\label{fig:amdqfd_bar}
+\end{figure*}
+
+% NOTE: fig_45_trajectory.pdf 待远端推理数据导出后启用
+%\begin{figure*}[!htbp]
+%\centering
+%\includegraphics[width=0.95\textwidth]{fig_45_trajectory.pdf}
+%\caption{AM $\times$ DQfD 组件消融实验轨迹对比：(a)~远距离任务，(b)~近距离任务。}
+%\label{fig:amdqfd_trajectory}
+%\end{figure*}
+
+\FloatBarrier
+\subsection{讨论}\label{ssec:discussion}
+
+基线对比实验中 DRL 的优势源于推理机制的差异。经典规划器的搜索开销随障碍物密度超线性增长，而 DRL 每步决策仅需一次前向传播，与环境复杂度无关。远距离任务中经典规划器的超时失败集中在障碍物最稠密的区域，Yin 等人~\cite{yin2023efficient}和 Jiang 等人~\cite{jiang2022r2rrt}在越野环境中也观察到了类似的计算瓶颈。
+
+模块消融实验中，4 种变体的成功率波动范围（近距离 64\%--74\%，远距离 74\%--86\%）远小于组件消融中的降幅（去除 DQfD 后远距离降 58 个百分点），而路径质量差异更为显著，说明架构选择主要影响路径质量而非成功率。MD 架构中，MHA 对卷积特征图的各空间位置施加自注意力；Dueling~\cite{wang2016dueling}在输出层将 Q 函数分离为 $V(s)$ 与 $A(s,a)$，在 35 维动作空间中实现跨动作的价值共享。两者分别位于网络的不同阶段，优势可以叠加。
+
+组件消融实验揭示了动作掩码与 DQfD 预训练的互补性。DQfD 解决"朝哪走"的问题——为策略提供初始导航能力，使训练从起步即绕过纯随机探索阶段；动作掩码解决"哪些不能走"的问题——约束探索边界，屏蔽运动学不可行的动作。完整版的性能优于任一单组件版本，说明两者的贡献不可互相替代。Huang 和 Onta\~{n}\'on~\cite{huang2022closer}在组合博弈中验证了无效动作掩码的有效性，本文将该机制扩展到运动学受约束的导航任务，并验证了其与演示学习的协同效果。
+
+观测设计采用双分辨率策略。卷积网络在降采样地图（$N=12$）上执行全局方向决策，Dijkstra 目标距离图经降采样后梯度方向仍指向正确的绕障路径，为全局决策提供了鲁棒的引导信号。碰撞安全由全分辨率动作掩码保障，不依赖于网络对障碍物边界的精确感知。核心实验中 MD-DQN 的远距离失败集中在地图边缘的极端情形中，说明降采样的信息损失仍是当前方案的瓶颈之一。
+
+本研究存在若干局限性。所有实验基于同一张真实林地地图，方法在不同地形和障碍物密度下的泛化能力尚未验证。当前评估在二维栅格仿真中进行，未考虑实车部署中的传感器噪声与定位漂移。环境中仅含静态障碍物，尚不具备应对行人或动物等移动目标的能力。此外，35 个离散动作可能限制轨迹精细度，连续或混合动作空间值得进一步探索。
+
+每步决策仅需一次前向传播的特性使 DRL 策略适合部署在算力有限的边缘平台上，如实验平台搭载的 Jetson AGX Orin。以 DRL 进行全局路径规划、轻量级局部规划器进行轨迹微调，是一种可行的部署方案。
+
+% ══════════════════════════════════════════════════════════════
+\section{结论}\label{sec:conclusion}
+
+本文提出了一种面向稠密林地环境中阿克曼转向 UGV 的深度强化学习路径规划框架。该框架将自行车运动学约束、基于 Dijkstra 目标距离图的测地线奖励塑形、DQfD 专家预训练、基于运动学约束的动作掩码以及双圆碰撞检测集成于统一的 MD-DQN 规划流水线中，核心贡献在于系统层面的集成而非单一组件的创新。
+
+在真实林地地图上的实验中，MD-DQN 在远距离任务上达到 86\% 的成功率，高于 Spline-based RRT*（68\%）和 Improved Hybrid A*（28\%），同时计算速度提升约一个数量级。四变体架构消融实验证实了 MD-DQN 在路径质量上的综合最优性，组件消融实验则揭示了动作掩码与 DQfD 预训练之间的互补关系——两者的组合效果优于任一单组件，表明安全探索约束与演示引导初始化的结合对于受约束导航任务不可或缺。
+
+本研究的局限性也指明了未来的改进方向。当前实验基于单一真实林地地图，后续工作将通过多地图训练与域随机化验证方法的泛化能力。仿真到真实的迁移是另一关键课题，计划将所学策略部署至搭载 Jetson AGX Orin 的实体 UGV 平台，并评估传感器噪声与定位误差对规划性能的影响。此外，引入时序观测机制以应对动态障碍物，以及探索连续动作空间以提升轨迹精细度，均是值得深入研究的方向。
+
+% ══════════════════════════════════════════════════════════════
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}
