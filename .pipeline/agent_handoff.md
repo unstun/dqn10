@@ -57,3 +57,27 @@
 
 **下一会话首动作**:DQN10 的 §4.5 cnn-dqn vs cnn-ddqn 工作继续。如要跑本地聚合,直接 `python scripts/aggregate_20260408_raw.py` 即可(路径已自适应)。如要远端跑全流水线,先按硬规则 #18 做 `rsync` 到 `/home/ubuntu/DQN10/`。
 
+---
+
+## Handoff: PreCompact hook 调研任务 plan 已出,等待 Dr Sun 确认开始 — 2026-04-08
+
+**本次会话做了什么**:
+
+- 会话启动协议三件套读取完成:`agent_handoff.md`(tail) / `project_truth.md`(仍是占位) / `tasks.json`(唯一 todo = `research-precompact-hook`,medium)
+- 按硬规则 #5 向 Dr Sun 报了 6 步调研计划 + 文件清单 + 风险 + 验证,等"开始"指令再执行
+
+**计划摘要**(未执行):
+
+1. `claude-code-guide` agent 查官方 hooks 文档里 `PreCompact` 事件 schema/触发时机/阻断语义
+2. WebSearch 社区实践(每批 ≤2 同类调用,避免 WebFetch 403 级联)
+3. 汇总 2–4 个方案对比优劣(shell 拦截 / 写 state 文件 / 与 Stop hook 分工)
+4. 产出 `.pipeline/research/precompact_hook_best_practices.md`(新建)
+5. `tasks.json` 标 `research-precompact-hook` done,按结论决定是否新增 `impl-precompact-hook`
+6. 追加 handoff
+
+**未执行的原因**:硬规则 #5 要求报计划后等"开始"。Dr Sun 未回复"开始",故不动手。本次被 Stop hook 提醒 handoff 超龄,于是先补这条占位 handoff,不变更计划本体。
+
+**未改动任何文件**(除本 handoff 一条新增条目)。
+
+**下一会话首动作**:若 Dr Sun 回复"开始",直接执行上述计划第 1 步;若 Dr Sun 改任务,重新读 `tasks.json`。
+
