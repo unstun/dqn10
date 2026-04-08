@@ -275,3 +275,11 @@ Dr Sun 已批 `开始 A++`。落地第 1 步读两个文件时发现 **CLAUDE.md
 - `agent_handoff.md` 历史 MD032/MD037 警告(含本条新增的若干 bullet/表格 markdown lint)是 markdownlint 风格遗留,**不要顺手清扫**(scope creep,#26 精神)
 - 上次会话最初的 4 条 handoff(2 条等 Dr Sun 选 sync 方向、1 条 PreCompact 研究启动、1 条研究完成)是过程记录,可跳读
 - 本条 + 上次的"综合快照"是当前 sync 解决路径的完整记录,**下一会话只需读本条 §4 即可定位下一任务**
+
+## Handoff: 补记 push + memory 系统启用 — 2026-04-08
+
+> 接续上一条"反向 sync + A++ 落地"。本次会话完整收尾的最后两步。
+
+- `git push origin main`:`6018e12..cc7e876` fast-forward 推 2 commits 到远端,远端 history 与本地 ≡
+- Dr Sun 授权"工作流文档 commit 也允许 push";已记入 memory `~/.claude/projects/.../memory/feedback_workflow_doc_push.md`,`MEMORY.md` 索引建立(此前 memory 目录为空)
+- 下一会话:`tasks.json#impl-precompact-hook`(双轨方案,设计见 `.pipeline/research/precompact_hook_best_practices.md` §4.2)
