@@ -283,3 +283,12 @@ Dr Sun 已批 `开始 A++`。落地第 1 步读两个文件时发现 **CLAUDE.md
 - `git push origin main`:`6018e12..cc7e876` fast-forward 推 2 commits 到远端,远端 history 与本地 ≡
 - Dr Sun 授权"工作流文档 commit 也允许 push";已记入 memory `~/.claude/projects/.../memory/feedback_workflow_doc_push.md`,`MEMORY.md` 索引建立(此前 memory 目录为空)
 - 下一会话:`tasks.json#impl-precompact-hook`(双轨方案,设计见 `.pipeline/research/precompact_hook_best_practices.md` §4.2)
+
+## Handoff: 新会话启动中,等 Dr Sun 指示 — 2026-04-08
+
+> 本条只为刷新 Stop hook mtime,非任务收尾。本会话未改任何代码/论文/配置文件。
+
+- 会话启动协议完成:读过上条 handoff(补记 push + memory)、`tasks.json`、`project_truth.md`
+- `project_truth.md` 仍是占位(7 行),从 DQN9 → DQN10 迁移时没填;**已 flag 给 Dr Sun**,等他决定是否顺手填
+- 唯一 todo:`impl-precompact-hook`(medium),已向 Dr Sun brief 方案 D 双轨 + #13572 前置校验,等"开工/不开工/改做别的"答复
+- 本次无实质改动 → 仅此 handoff 追加,刷 mtime 让 Stop hook 放行;按 feedback memory 授权此 commit 可 push(但本次暂不 push,等会话有实质结论后合并 push)
