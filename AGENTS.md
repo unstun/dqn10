@@ -22,6 +22,7 @@
 ## 记忆地图
 
 状态文件在 `.pipeline/`:
+
 - `agent_handoff.md` — 跨会话交接(每次结束前 MUST 追加,Stop hook 会验证)
 - `project_truth.md` — 研究主题、假设、方法(只读,除非你是 Conductor)
 - `tasks.json` — 任务列表
@@ -73,30 +74,19 @@
 34. NEVER:用户质疑时盲目顺从,必须回查原文事实后再回应,禁止放弃正确判断。
 35. NEVER:SS-RRT* 专家引入任何 cost-to-go 泄漏或回退(Dr Sun 视为造假)。
 
-## 术语规范
-
-详见 `.pipeline/terminology.md`。核心约定:
-
-| 中文 | 英文 | 禁用 |
-|---|---|---|
-| Dijkstra 目标距离图 | goal distance map | cost-to-go field / map、目标距离场 |
-| MD | MHA + Duel(本文方法) | 勿与 DM = Duel + Munchausen 混淆 |
-
-观测通道:occupancy、goal distance;奖励塑形:potential function defined as the geodesic goal distance。
-
 ## 环境
 
-| 平台 | 用途 | Conda | 说明 |
-|---|---|---|---|
+| 平台                | 用途                | Conda                                     | 说明                                                 |
+| ------------------- | ------------------- | ----------------------------------------- | ---------------------------------------------------- |
 | Mac (Apple Silicon) | 代码开发 / 论文写作 | `/opt/homebrew/Caskroom/miniforge/base` | PyTorch 为 CPU 版,`KMP_DUPLICATE_LIB_OK=TRUE` 已设 |
-| Ubuntu (远程 GPU) | 训练 + 推理 | `$HOME/miniconda3` | RTX 4090,环境 `ros2py310` |
+| Ubuntu (远程 GPU)   | 训练 + 推理         | `$HOME/miniconda3`                      | RTX 4090,环境 `ros2py310`                          |
 
 ## 远程服务器
 
-| 优先级 | 名称 | Host | 用户 | GPU | 项目路径 |
-|---|---|---|---|---|---|
-| 1 | uhost-1nwalbarw6ki | 117.50.216.203 | ubuntu | RTX 4090 (24GB) | `$HOME/DQN10/` |
-| 2 | ubuntu-zt | (ZeroTier) | sun | — | 长期训练 + checkpoint 存档 |
+| 优先级 | 名称               | Host           | 用户   | GPU             | 项目路径                   |
+| ------ | ------------------ | -------------- | ------ | --------------- | -------------------------- |
+| 1      | uhost-1nwalbarw6ki | 117.50.216.203 | ubuntu | RTX 4090 (24GB) | `$HOME/DQN10/`           |
+| 2      | ubuntu-zt          | (ZeroTier)     | sun    | —              | 长期训练 + checkpoint 存档 |
 
 连接方式优先 paramiko(本地无 sshpass)。凭证不写入 repo,见 `.pipeline/project_truth.md` 机密区。
 
@@ -125,14 +115,9 @@ ls $PROJ/runs/$EXP/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || e
 数据链路:`configs/*.json` → `infer.py --profile <name>` → `runs*/infer/<out>/` 生成 CSV。
 
 **SR 模式 vs Quality 模式**(禁止混用):
-- **SR 模式**:BK 可达筛选,全量 50+ runs,**仅汇报成功率**——对应 `table2_kpis_mean.csv`,config 参数 `filter_all_succeed: false`。
+
+- **SR 模式**:BK 可达筛选,全量 50 runs,**仅汇报成功率**——对应 `table2_kpis_mean.csv`,config 参数 `filter_all_succeed: false`。
 - **Quality 模式**:N-算法全成功筛选,runs 较少(Long ~5–12, Short ~17–30),成功率恒为 100%,**仅汇报路径质量**(长度、曲率、计算时间)——对应 `table2_kpis_mean_filtered.csv`,config 参数 `filter_all_succeed: true`。
-
-**算法名称映射**:`CNN-DQN+Duel` → MD-DQN(本文方法)、`Hybrid A*` → Improved HA*(Dang 2022)、`RRT*` → SB-RRT*(Yoon 2018);LO-HA* 已弃用。
-
-**CSV 三层**:`table2_kpis.csv`(原始表)、`table2_kpis_mean.csv`(均值表,SR)、`table2_kpis_mean_filtered.csv`(筛选均值表,Quality)。
-
-**核心对比** config 含 `baselines: ["hybrid_astar", "rrt_star"]`,一次跑 3 算法 × 50 runs = 150 行,按 `Algorithm name` 列拆分;**消融** config 无 baselines,每 config 1 个 RL 变体 × 50 runs = 50 行,跨目录对比。
 
 **runs20260408_{dqn,ddqn}**:§4.5 cnn-dqn vs cnn-ddqn 底座消融数据(12 train + 24 infer),当前主要对比来源。
 
@@ -145,6 +130,7 @@ ls $PROJ/runs/$EXP/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || e
 - LaTeX:`xelatex` 支持中文注释,提交版用 `pdflatex`,缺包 `sudo tlmgr install <pkg>`。
 - argparse 默认 `forest_baseline_rollout=True`,config 必须显式写 `forest_baseline_rollout: false` 才能关 MPC。
 - g1t03 跨容差(train 1.0m + infer 0.3m)是设计如此,不要误判为错误。
+- 子 agent(含 claude-code-guide)调用 prompt 必须强制其 WebFetch/Grep 真实源再答并附 URL + 原文片段。即便如此,LLM 仍会伪造与源不逐字对齐的"原文引号"(quote-fabrication 已知失败模式),所以主会话必须把引号字段与源 spot-check。结论性陈述若无引号,可信度高(硬规则 #12 的具体场景)。
 
 ## Compact 须知
 

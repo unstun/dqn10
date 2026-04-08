@@ -3,12 +3,21 @@
   "updated": "2026-04-08",
   "tasks": [
     {
-      "id": "research-precompact-hook",
+      "id": "impl-precompact-hook",
       "priority": "medium",
       "status": "todo",
+      "tag": "infra",
+      "title": "落地 PreCompact 双轨方案(轨 A pre-compact.sh + 轨 B /compact-safe slash command)",
+      "notes": "调研结论见 .pipeline/research/precompact_hook_best_practices.md §4.2。需新建 .claude/scripts/pre-compact.sh + .claude/commands/compact-safe.md,改 .claude/settings.json + CLAUDE.md/AGENTS.md。落地前先 claude --version 确认 #13572 是否已修复,跑一次 manual /compact 实测。"
+    },
+    {
+      "id": "research-precompact-hook",
+      "priority": "medium",
+      "status": "done",
+      "completed": "2026-04-08",
       "tag": "research",
       "title": "调研 PreCompact hook 最佳实践 / 别人怎么在 compact 前强制落盘",
-      "notes": "第一版 DQN10 未实现 pre-compact.sh。需联网搜 Claude Code 社区实践：如何在 /compact 触发前强制写 agent_handoff.md。参考 claudefa.st、code.claude.com/docs/en/hooks。"
+      "notes": "完成。结论:PreCompact 真实存在但不能 block compaction(官方 doc),且 #13572 已知缺陷会导致 manual /compact 不触发。推荐方案 D(双轨:auto-compact 用 hook + manual /compact 用自定义 instructions slash command)。完整笔记见 .pipeline/research/precompact_hook_best_practices.md。后续落地任务:impl-precompact-hook。"
     }
   ]
 }
