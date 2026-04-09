@@ -58,7 +58,7 @@ DQN10/
 - `冷区/工作流.md` — 标准工作流(单文件)
 - `格式规范.md` — 热区容量预算 + 冷区文件格式模板
 
-**记忆检索模型**: Droid 派 memory-worker(gpt-5.4);Claude Code 用 `--model sonnet` 或直接 Read。
+**记忆检索模型**: Droid 派 memory-worker(minimax2.5);Claude Code 用 `--model sonnet` 或直接 Read。
 
 **.pipeline/(项目知识库,平文件数据库)**:
 
@@ -83,7 +83,7 @@ DQN10/
 3. MUST:注释须 ASCII 风格分块,代码如顶级开源库作品——"代码是写给人看的,只是顺便让机器运行"。
 4. MUST:论文正文先中文写作,定稿后统一英文润色,README 等项目文档也用中文。
 5. MUST:改文件前输出 3–7 步计划 + 文件清单 + 风险 + 验证,等"开始"后再动手。
-6. MUST:Dr Sun 第一句话后,自动派 memory-worker(Droid: gpt-5.4 / Claude Code: sonnet)从 bigmemory 全局检索相关上下文,不等用户要求。
+6. MUST:Dr Sun 第一句话后,自动派 memory-worker(Droid: minimax2.5 / Claude Code: sonnet)从 bigmemory 全局检索相关上下文,不等用户要求。
 7. MUST:每完成一个有意义的变更就 git commit。
 8. MUST:修改代码或论文文件前,先 `git add . && git commit && git push`,确保远端有可回退快照(无例外)。
 9. MUST:bigmemory 冷区按天文件只追加不覆写,热区全量重写且须遵守容量预算(见 `bigmemory/格式规范.md`)。
@@ -176,7 +176,7 @@ ls $EXP/runs/$RUN/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || ec
 ## 记忆系统(bigmemory)
 
 **入口(自动)**:Dr Sun 第一句话后,主 AI 自动派 memory-worker 从 bigmemory 抓取相关上下文。
-- Droid:Task tool 派 memory-worker(gpt-5.4,read-only)
+- Droid:Task tool 派 memory-worker(minimax2.5,read-only)
 - Claude Code:`claude -p --model sonnet` 或直接 Read/Grep
 - memory-worker 看不到 CLAUDE.md,它的 prompt 在 `.factory/droids/memory-worker.md`
 
