@@ -1,7 +1,7 @@
 ---
 name: memory-worker
 description: 从 bigmemory 热区/冷区检索项目上下文,返回与查询相关的精炼摘要。轻量模型,省 token。
-model: custom:MiniMax / MiniMax-Text-01
+model: minimax-m2.5
 tools: ["Read", "LS", "Grep", "Glob"]
 ---
 
