@@ -9,12 +9,11 @@
 你在一个长周期 PhD 研究项目中工作。每次会话只做一件事。
 会话协议:读状态 → 做一个任务 → 写状态 → 结束。
 
-## 会话启动(按需拉取,不预注入)
+## 会话启动
 
-1. 等 Dr Sun 提出任务/问题
-2. 根据任务性质按需读取 bigmemory 热区(见记忆系统章节)
-3. 如需任务列表,读 `.pipeline/tasks.json`
-4. 开始工作
+1. Dr Sun 提出第一句话后,**自动**派 memory-worker 子 agent 从 bigmemory 全局抓取与问题相关的上下文
+2. 基于返回的上下文 + 如需任务列表读 `.pipeline/tasks.json`
+3. 开始工作
 
 如果 `.pipeline/project_truth.md` 未填充,说明项目未初始化。请先与 Dr Sun 确认研究主题再开始。
 
@@ -22,7 +21,7 @@
 
 **bigmemory/(按需拉取,透明读写)**:
 
-- `热区/状态简报.md` — 当前项目状态(≤1500字,结束前 MUST 全量重写,Stop hook 验证 mtime)
+- `热区/状态简报.md` — 当前项目状态(≤1500字)
 - `热区/未关闭决策.md` — 未关闭的研究/技术决策(≤1200字)
 - `热区/近期改动.md` — 最近 7 天改动摘要(≤1000字)
 - `冷区/改动记录/` — 按天归档:YYYY-MM-DD.md(只追加)
@@ -55,7 +54,7 @@
 3. MUST:注释须 ASCII 风格分块,代码如顶级开源库作品——"代码是写给人看的,只是顺便让机器运行"。
 4. MUST:论文正文先中文写作,定稿后统一英文润色,README 等项目文档也用中文。
 5. MUST:改文件前输出 3–7 步计划 + 文件清单 + 风险 + 验证,等"开始"后再动手。
-6. MUST:结束前全量重写 `bigmemory/热区/状态简报.md`(Stop hook 验证 mtime,不写会被 block),如有值得归档的内容同时写冷区。
+6. MUST:Dr Sun 第一句话后,自动派 memory-worker(Droid: gpt-5.4 / Claude Code: sonnet)从 bigmemory 全局检索相关上下文,不等用户要求。
 7. MUST:每完成一个有意义的变更就 git commit。
 8. MUST:修改代码或论文文件前,先 `git add . && git commit && git push`,确保远端有可回退快照(无例外)。
 9. MUST:bigmemory 冷区按天文件只追加不覆写,热区全量重写且须遵守容量预算(见 `bigmemory/格式规范.md`)。
@@ -146,23 +145,16 @@ ls $PROJ/runs/$EXP/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || e
 
 ## 记忆系统(bigmemory)
 
-本项目使用按需拉取的记忆系统,所有读写在对话中透明进行(用户可见)。
+**入口(自动)**:Dr Sun 第一句话后,主 AI 自动派 memory-worker 从 bigmemory 抓取相关上下文。
+- Droid:Task tool 派 memory-worker(gpt-5.4,read-only)
+- Claude Code:`claude -p --model sonnet` 或直接 Read/Grep
+- memory-worker 看不到 CLAUDE.md,它的 prompt 在 `.factory/droids/memory-worker.md`
 
-**读取(按需)**:
-- 涉及项目状态:Read `bigmemory/热区/状态简报.md`
-- 涉及历史决策:Read `bigmemory/热区/未关闭决策.md`
-- 涉及近期改动:Read `bigmemory/热区/近期改动.md`
-- 需要历史上下文:Grep 搜索 `bigmemory/冷区/` 对应子目录
-- Droid 环境:用 Task tool 派 memory-worker(gpt-5.4)
-- Claude Code 环境:直接 Read/Grep 或 `claude -p --model sonnet`
-
-**写入(结束前)**:
-- MUST 全量重写 `bigmemory/热区/状态简报.md`(Stop hook 验证)
-- 按需更新 `bigmemory/热区/未关闭决策.md` 和 `近期改动.md`
-- 如有改动/踩坑/调研/决策/里程碑,写入对应冷区按天文件(YYYY-MM-DD.md)
-- 热区容量:状态简报≤1500字,未关闭决策≤1200字,近期改动≤1000字
+**出口(手动)**:Dr Sun 在对话中调用 `/archive`,主 AI 按指令执行分诊 + 冷区归档 + 热区刷新。
+- 归档完全由 Dr Sun 自主决定,无 hook 强制
+- 所有写入在对话中透明进行(用户可见)
 
 ## Compact 须知
 
-IMPORTANT:如果 context 使用过半,先更新 `bigmemory/热区/状态简报.md`(进度快照)。
-compact 前 MUST 先完成热区写入——落盘后不受 compact 影响。
+IMPORTANT:如果 context 使用过半,建议先调用 `/archive` 归档当前进度。
+compact 前归档落盘后不受 compact 影响。

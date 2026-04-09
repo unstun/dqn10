@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/session-start-lite.sh",
+            "command": "bash \"$FACTORY_PROJECT_DIR\"/.claude/scripts/session-start-lite.sh",
             "timeout": 10
           }
         ]
