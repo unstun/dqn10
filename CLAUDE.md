@@ -76,18 +76,19 @@
 21. MUST:联网使用 Playwright MCP,付费墙站点(tandfonline / sciencedirect / springer)走 `browser_navigate` → `browser_wait_for 5s` → `browser_snapshot`。
 22. MUST:SSH 远程执行 conda 必须 `conda run --cwd <项目绝对路径> -n ros2py310 python ...`(不 cd 会用错目录)。
 23. MUST:`CLAUDE.md ≡ AGENTS.md`(逐行一致),修改任一文件后必须同步另一个,并跑 `bash .claude/scripts/check-agents-sync.sh` 验证。
-24. MUST:代码包名为 `ugv_dqn`(不是 `amr_dqn`),所有 import 使用 `from ugv_dqn.xxx import ...`。
-25. MUST:论文润色工作流——多 Agent 并行搜同领域真实句子 → 提炼句式特征 → 按句式改写并标注对标原句 → 自检删掉是否丢失信息。
-26. NEVER:在一个会话里串联多个任务。
-27. NEVER:修改 `project_truth.md`(除非当前角色是 Conductor)。
-28. NEVER:同一时间有两个 Claude Code 会话操作本项目。
-29. NEVER:论文中使用括号补充说明(缩写定义除外,如"深度强化学习(DRL)"),改用"即""由…构成""如图…所示"。
-30. NEVER:公式中使用 `grid_size` 等代码风格变量名,须用 $\Delta c$、$\delta$、$\epsilon$ 等标准记法,独立公式末尾不加标点。
-31. NEVER:论文中出现"张量""编码"描述地图输入,用"地图""记录"替代,禁用 EDT 等实现层术语,用"欧氏距离"等数学概念。
-32. NEVER:论文方法论写 enumerate 列表式段落,须散文叙事。
-33. NEVER:捏造术语、过度包装简单概念、使用推销性语言,术语须溯源文献。
-34. NEVER:用户质疑时盲目顺从,必须回查原文事实后再回应,禁止放弃正确判断。
-35. NEVER:SS-RRT* 专家引入任何 cost-to-go 泄漏或回退(Dr Sun 视为造假)。
+24. MUST:`CLAUDE.md` / `AGENTS.md` 的受众是 AI,内容以 AI 可解析、可执行为优先;其余一切产出——论文、README、日志、bigmemory、以及主 AI 对 Dr Sun 的回复与提问——以人可读为优先。
+25. MUST:代码包名为 `ugv_dqn`(不是 `amr_dqn`),所有 import 使用 `from ugv_dqn.xxx import ...`。
+26. MUST:论文润色工作流——多 Agent 并行搜同领域真实句子 → 提炼句式特征 → 按句式改写并标注对标原句 → 自检删掉是否丢失信息。
+27. NEVER:在一个会话里串联多个任务。
+28. NEVER:修改 `project_truth.md`(除非当前角色是 Conductor)。
+29. NEVER:同一时间有两个 Claude Code 会话操作本项目。
+30. NEVER:论文中使用括号补充说明(缩写定义除外,如"深度强化学习(DRL)"),改用"即""由…构成""如图…所示"。
+31. NEVER:公式中使用 `grid_size` 等代码风格变量名,须用 $\Delta c$、$\delta$、$\epsilon$ 等标准记法,独立公式末尾不加标点。
+32. NEVER:论文中出现"张量""编码"描述地图输入,用"地图""记录"替代,禁用 EDT 等实现层术语,用"欧氏距离"等数学概念。
+33. NEVER:论文方法论写 enumerate 列表式段落,须散文叙事。
+34. NEVER:捏造术语、过度包装简单概念、使用推销性语言,术语须溯源文献。
+35. NEVER:用户质疑时盲目顺从,必须回查原文事实后再回应,禁止放弃正确判断。
+36. NEVER:SS-RRT* 专家引入任何 cost-to-go 泄漏或回退(Dr Sun 视为造假)。
 
 ## 环境
 
