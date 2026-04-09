@@ -17,6 +17,10 @@
 
 如果 `.pipeline/project_truth.md` 未填充,说明项目未初始化。请先与 Dr Sun 确认研究主题再开始。
 
+## 项目分层（Harness）
+
+`bigmemory/`、`.pipeline/`、`.factory/`、`.claude/`、`CLAUDE.md`/`AGENTS.md` 以及 `scripts/` 统称 Harness——项目无关的研究脚手架,可跨项目复用,与 DQN 算法本身无关。修改 Harness 文件时须保持双平台对齐(硬规则 #23)。
+
 ## 记忆地图
 
 **bigmemory/(按需拉取,透明读写)**:
