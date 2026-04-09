@@ -9,25 +9,37 @@
 你在一个长周期 PhD 研究项目中工作。每次会话只做一件事。
 会话协议:读状态 → 做一个任务 → 写状态 → 结束。
 
-## 会话启动(每次都执行)
+## 会话启动(按需拉取,不预注入)
 
-1. 读 `.pipeline/agent_handoff.md` 最新一条 `## Handoff:` 条目
-2. 读 `.pipeline/project_truth.md`
-3. 读 `.pipeline/tasks.json`
-4. 确认本次要做的一件事(取 tasks.json 中最高优先级 status=todo 的任务)
-5. 开始工作
+1. 等 Dr Sun 提出任务/问题
+2. 根据任务性质按需读取 bigmemory 热区(见记忆系统章节)
+3. 如需任务列表,读 `.pipeline/tasks.json`
+4. 开始工作
 
 如果 `.pipeline/project_truth.md` 未填充,说明项目未初始化。请先与 Dr Sun 确认研究主题再开始。
 
 ## 记忆地图
 
-状态文件在 `.pipeline/`:
+**bigmemory/(按需拉取,透明读写)**:
 
-- `agent_handoff.md` — 跨会话交接(每次结束前 MUST 追加,Stop hook 会验证)
+- `热区/状态简报.md` — 当前项目状态(≤1500字,结束前 MUST 全量重写,Stop hook 验证 mtime)
+- `热区/未关闭决策.md` — 未关闭的研究/技术决策(≤1200字)
+- `热区/近期改动.md` — 最近 7 天改动摘要(≤1000字)
+- `冷区/改动记录/` — 按天归档:YYYY-MM-DD.md(只追加)
+- `冷区/踩坑记录/` — 按天归档(只追加)
+- `冷区/调研记录/` — 按天归档(只追加)
+- `冷区/心路历程/` — 按天归档(只追加)
+- `冷区/里程碑/` — 按天归档(只追加)
+- `冷区/偏好.md` — 用户偏好(单文件)
+- `冷区/工作流.md` — 标准工作流(单文件)
+- `格式规范.md` — 热区容量预算 + 冷区文件格式模板
+
+**记忆检索模型**: Droid 派 memory-worker(gpt-5.4);Claude Code 用 `--model sonnet` 或直接 Read。
+
+**.pipeline/(研究专用)**:
+
 - `project_truth.md` — 研究主题、假设、方法(只读,除非你是 Conductor)
 - `tasks.json` — 任务列表
-- `experiment_ledger.md` — 实验记录(只追加不覆写)
-- `literature_bank.md` — 文献库(只追加不覆写)
 - `terminology.md` — 术语规范表(中英文术语、禁用词)
 - `papers/` — 论文 PDF 本地副本(命名 `<CitationKey>.pdf`,付费墙补充材料加 `_supp` 后缀)
 
@@ -43,10 +55,10 @@
 3. MUST:注释须 ASCII 风格分块,代码如顶级开源库作品——"代码是写给人看的,只是顺便让机器运行"。
 4. MUST:论文正文先中文写作,定稿后统一英文润色,README 等项目文档也用中文。
 5. MUST:改文件前输出 3–7 步计划 + 文件清单 + 风险 + 验证,等"开始"后再动手。
-6. MUST:结束前追加 `agent_handoff.md`(Stop hook 会验证,不写会被 block)。
+6. MUST:结束前全量重写 `bigmemory/热区/状态简报.md`(Stop hook 验证 mtime,不写会被 block),如有值得归档的内容同时写冷区。
 7. MUST:每完成一个有意义的变更就 git commit。
 8. MUST:修改代码或论文文件前,先 `git add . && git commit && git push`,确保远端有可回退快照(无例外)。
-9. MUST:`experiment_ledger.md` 和 `literature_bank.md` 只追加,NEVER 覆写,读取用 tail / Grep,NEVER 全文读。
+9. MUST:bigmemory 冷区按天文件只追加不覆写,热区全量重写且须遵守容量预算(见 `bigmemory/格式规范.md`)。
 10. MUST:文献 PDF / 数据集 / 实验产物 NEVER 保存到 `/tmp`,必须保存到项目内(论文 PDF → `.pipeline/papers/<CitationKey>.pdf`)。
 11. MUST:遇到不确定的研究决策、技术选型、实验设计时,先问 Dr Sun 而不是自行决定。
 12. MUST:专业问题先联网搜索(GitHub / arXiv / 官方文档)或本地文献核实后再答,禁止凭 AI 记忆,不确定的标注不确定。
@@ -132,8 +144,25 @@ ls $PROJ/runs/$EXP/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || e
 - g1t03 跨容差(train 1.0m + infer 0.3m)是设计如此,不要误判为错误。
 - 子 agent(含 claude-code-guide)调用 prompt 必须强制其 WebFetch/Grep 真实源再答并附 URL + 原文片段。即便如此,LLM 仍会伪造与源不逐字对齐的"原文引号"(quote-fabrication 已知失败模式),所以主会话必须把引号字段与源 spot-check。结论性陈述若无引号,可信度高(硬规则 #12 的具体场景)。
 
+## 记忆系统(bigmemory)
+
+本项目使用按需拉取的记忆系统,所有读写在对话中透明进行(用户可见)。
+
+**读取(按需)**:
+- 涉及项目状态:Read `bigmemory/热区/状态简报.md`
+- 涉及历史决策:Read `bigmemory/热区/未关闭决策.md`
+- 涉及近期改动:Read `bigmemory/热区/近期改动.md`
+- 需要历史上下文:Grep 搜索 `bigmemory/冷区/` 对应子目录
+- Droid 环境:用 Task tool 派 memory-worker(gpt-5.4)
+- Claude Code 环境:直接 Read/Grep 或 `claude -p --model sonnet`
+
+**写入(结束前)**:
+- MUST 全量重写 `bigmemory/热区/状态简报.md`(Stop hook 验证)
+- 按需更新 `bigmemory/热区/未关闭决策.md` 和 `近期改动.md`
+- 如有改动/踩坑/调研/决策/里程碑,写入对应冷区按天文件(YYYY-MM-DD.md)
+- 热区容量:状态简报≤1500字,未关闭决策≤1200字,近期改动≤1000字
+
 ## Compact 须知
 
-IMPORTANT:如果 context 使用过半,先写一个中间 handoff(进度快照)到 `agent_handoff.md`。
-compact 前 MUST 先完成 handoff 写入——handoff 落盘后不受 compact 影响。
-(第一版 DQN10 未实现 PreCompact hook 强制拦截,见 `.pipeline/tasks.json` 中的调研 TODO。)
+IMPORTANT:如果 context 使用过半,先更新 `bigmemory/热区/状态简报.md`(进度快照)。
+compact 前 MUST 先完成热区写入——落盘后不受 compact 影响。

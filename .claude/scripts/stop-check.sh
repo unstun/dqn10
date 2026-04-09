@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Stop hook: 强制 handoff 写入
+# Stop hook: 强制热区更新
 # exit 0 = 放行, exit 2 = block（继续对话）
-# 来源: https://code.claude.com/docs/en/hooks
-# 防循环: https://claudefa.st/blog/tools/hooks/stop-hook-task-enforcement
+# 检查 bigmemory/热区/状态简报.md 的 mtime
 
-HANDOFF=".pipeline/agent_handoff.md"
+STATUS="bigmemory/热区/状态简报.md"
 MAX_AGE=300  # 秒
 
 # 从 stdin 读取 JSON
@@ -17,28 +16,28 @@ else
   ACTIVE=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('stop_hook_active',False)).lower())" 2>/dev/null || echo "false")
 fi
 
-# 防无限循环：如果已在强制继续状态，直接放行
+# 防无限循环
 if [ "$ACTIVE" = "true" ]; then
   exit 0
 fi
 
-# 检查 handoff 文件是否存在
-if [ ! -f "$HANDOFF" ]; then
-  echo "❌ agent_handoff.md 不存在。请先写交接笔记再结束。" >&2
+# 检查热区状态简报是否存在
+if [ ! -f "$STATUS" ]; then
+  echo "❌ bigmemory/热区/状态简报.md 不存在。请先更新热区再结束。" >&2
   exit 2
 fi
 
-# 检查文件是否在最近 N 秒内被修改
+# 检查 mtime
 if [[ "$(uname)" == "Darwin" ]]; then
-  MTIME=$(stat -f %m "$HANDOFF")
+  MTIME=$(stat -f %m "$STATUS")
 else
-  MTIME=$(stat -c %Y "$HANDOFF")
+  MTIME=$(stat -c %Y "$STATUS")
 fi
 NOW=$(date +%s)
 AGE=$((NOW - MTIME))
 
 if [ "$AGE" -gt "$MAX_AGE" ]; then
-  echo "❌ agent_handoff.md 超过 ${MAX_AGE} 秒未更新。请追加本次交接笔记再结束。" >&2
+  echo "❌ 热区状态简报超过 ${MAX_AGE} 秒未更新。请更新 bigmemory/热区/状态简报.md 再结束。" >&2
   exit 2
 fi
 
