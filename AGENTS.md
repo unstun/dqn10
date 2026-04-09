@@ -17,9 +17,33 @@
 
 如果 `.pipeline/project_truth.md` 未填充,说明项目未初始化。请先与 Dr Sun 确认研究主题再开始。
 
+## 三阶段目录结构
+
+```text
+DQN10/
+├── 1_survey/             ← 阶段1：规划（文献综述、调研笔记）
+│   └── papers/           ← 论文 PDF 本地副本
+├── 2_experiment/         ← 阶段2：实验+分析（代码、训练、推理、数据）
+│   ├── ugv_dqn/          ← 代码包
+│   ├── configs/          ← 训练/推理参数 JSON
+│   ├── scripts/          ← 运行/分析脚本
+│   ├── runs*/            ← 实验产物（.gitignore）
+│   ├── train.py          ← 训练入口
+│   └── infer.py          ← 推理入口
+├── 3_paper/              ← 阶段3：写作（论文、报告、PPT）
+│   ├── main.tex
+│   ├── figures/
+│   └── ...
+├── .pipeline/            ← Harness（跨阶段）
+├── .claude/ .factory/ bigmemory/
+└── CLAUDE.md / AGENTS.md
+```
+
+运行实验时 cwd 为 `2_experiment/`（`conda run --cwd .../2_experiment`）。
+
 ## 项目分层（Harness）
 
-`bigmemory/`、`.pipeline/`、`.factory/`、`.claude/`、`CLAUDE.md`/`AGENTS.md` 以及 `scripts/` 统称 Harness——项目无关的研究脚手架,可跨项目复用,与 DQN 算法本身无关。修改 Harness 文件时须保持双平台对齐(硬规则 #23)。
+`bigmemory/`、`.pipeline/`、`.factory/`、`.claude/`、`CLAUDE.md`/`AGENTS.md` 统称 Harness——项目无关的研究脚手架,可跨项目复用,与 DQN 算法本身无关。修改 Harness 文件时须保持双平台对齐(硬规则 #23)。
 
 ## 记忆地图
 
@@ -44,7 +68,7 @@
 - `project_truth.md` — 研究主题、假设、方法(只读,除非你是 Conductor)
 - `tasks.json` — 任务列表
 - `terminology.md` — 术语规范表(中英文术语、禁用词)
-- `papers/` — 论文 PDF 本地副本(命名 `<CitationKey>.pdf`,付费墙补充材料加 `_supp` 后缀)
+- `papers/` → symlink 到 `1_survey/papers/`(论文 PDF 本地副本,命名 `<CitationKey>.pdf`,付费墙补充材料加 `_supp` 后缀)
 
 ## 角色
 
@@ -62,19 +86,19 @@
 7. MUST:每完成一个有意义的变更就 git commit。
 8. MUST:修改代码或论文文件前,先 `git add . && git commit && git push`,确保远端有可回退快照(无例外)。
 9. MUST:bigmemory 冷区按天文件只追加不覆写,热区全量重写且须遵守容量预算(见 `bigmemory/格式规范.md`)。
-10. MUST:文献 PDF / 数据集 / 实验产物 NEVER 保存到 `/tmp`,必须保存到项目内(论文 PDF → `.pipeline/papers/<CitationKey>.pdf`)。
+10. MUST:文献 PDF / 数据集 / 实验产物 NEVER 保存到 `/tmp`,必须保存到项目内(论文 PDF → `1_survey/papers/<CitationKey>.pdf`)。
 11. MUST:遇到不确定的研究决策、技术选型、实验设计时,先问 Dr Sun 而不是自行决定。
 12. MUST:专业问题先联网搜索(GitHub / arXiv / 官方文档)或本地文献核实后再答,禁止凭 AI 记忆,不确定的标注不确定。
-13. MUST:学术问题必须先读 `paper/main.tex` 及相关章节,基于实际内容回答。
+13. MUST:学术问题必须先读 `3_paper/main.tex` 及相关章节,基于实际内容回答。
 14. MUST:引用核查四步——`search_web` / Semantic Scholar 定位 → DOI 2 源确认 → `curl -LH "Accept: application/x-bibtex" https://doi.org/<DOI>` → 确认 claim 存在,失败标 `[CITATION NEEDED]`,严禁凭记忆生成 BibTeX。
 15. MUST:代码搜索优先使用 ACE(`mcp__augment-context-engine__codebase-retrieval`)做语义理解,`Grep` 用于精确匹配,禁用 Bash 调 grep/rg,ACE 报错即回退到 Grep + Glob 不阻塞流程。
-16. MUST:所有训练/推理参数通过 `configs/*.json` 管理,代码改动须在 `configs/` 新增 `repro_YYYYMMDD_<topic>.json`(纯文档改动豁免)。
-17. MUST:消融实验结束后在 `runs/ablation_logs/` 写 `ablation_YYYYMMDD_<topic>.md`。
-18. MUST:远端训练前必须完整 `rsync` 同步代码(含 `configs/`、`ugv_dqn/`、`scripts/`),严禁未同步就启动远端训练(无例外)。
+16. MUST:所有训练/推理参数通过 `2_experiment/configs/*.json` 管理,代码改动须在 `2_experiment/configs/` 新增 `repro_YYYYMMDD_<topic>.json`(纯文档改动豁免)。
+17. MUST:消融实验结束后在 `2_experiment/runs/ablation_logs/` 写 `ablation_YYYYMMDD_<topic>.md`。
+18. MUST:远端训练前必须完整 `rsync` 同步代码(含 `2_experiment/`),严禁未同步就启动远端训练(无例外)。
 19. MUST:推理前必须确认 checkpoint 文件正确,不能依赖"默认最新"。
 20. MUST:复杂任务(多文件修改、跨模块调研、论文+代码联动)默认启用多 Agent 并行,简单单文件任务无需启用。
 21. MUST:联网使用 Playwright MCP,付费墙站点(tandfonline / sciencedirect / springer)走 `browser_navigate` → `browser_wait_for 5s` → `browser_snapshot`。
-22. MUST:SSH 远程执行 conda 必须 `conda run --cwd <项目绝对路径> -n ros2py310 python ...`(不 cd 会用错目录)。
+22. MUST:SSH 远程执行 conda 必须 `conda run --cwd <项目绝对路径>/2_experiment -n ros2py310 python ...`（不 cd 会用错目录）。
 23. MUST:`CLAUDE.md ≡ AGENTS.md`(逐行一致),修改任一文件后必须同步另一个,并跑 `bash .claude/scripts/check-agents-sync.sh` 验证。
 24. MUST:`CLAUDE.md` / `AGENTS.md` 的受众是 AI,内容以 AI 可解析、可执行为优先;其余一切产出——论文、README、日志、bigmemory、以及主 AI 对 Dr Sun 的回复与提问——以人可读为优先。
 25. MUST:代码包名为 `ugv_dqn`(不是 `amr_dqn`),所有 import 使用 `from ugv_dqn.xxx import ...`。
@@ -109,33 +133,33 @@
 ## 常用命令
 
 ```bash
-PROJ=$HOME/DQN10; ENV=ros2py310
+PROJ=$HOME/DQN10; EXP=$PROJ/2_experiment; ENV=ros2py310
 
 # 训练(后台)
-nohup conda run --cwd $PROJ -n $ENV python train.py --profile $PROFILE \
-  > runs/${PROFILE}_$(date +%Y%m%d_%H%M%S).log 2>&1 &
+nohup conda run --cwd $EXP -n $ENV python train.py --profile $PROFILE \
+  > $EXP/runs/${PROFILE}_$(date +%Y%m%d_%H%M%S).log 2>&1 &
 
 # 推理
-conda run --cwd $PROJ -n $ENV python infer.py --profile $PROFILE
+conda run --cwd $EXP -n $ENV python infer.py --profile $PROFILE
 
 # 自检
-conda run --cwd $PROJ -n $ENV python train.py --self-check
-conda run --cwd $PROJ -n $ENV python infer.py --self-check
+conda run --cwd $EXP -n $ENV python train.py --self-check
+conda run --cwd $EXP -n $ENV python infer.py --self-check
 
 # 完成判定
-ls $PROJ/runs/$EXP/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || echo RUNNING
+ls $EXP/runs/$RUN/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || echo RUNNING
 ```
 
 ## 实验数据结构(必读)
 
-数据链路:`configs/*.json` → `infer.py --profile <name>` → `runs*/infer/<out>/` 生成 CSV。
+数据链路:`2_experiment/configs/*.json` → `infer.py --profile <name>` → `2_experiment/runs*/infer/<out>/` 生成 CSV。
 
 **SR 模式 vs Quality 模式**(禁止混用):
 
 - **SR 模式**:BK 可达筛选,全量 50 runs,**仅汇报成功率**——对应 `table2_kpis_mean.csv`,config 参数 `filter_all_succeed: false`。
 - **Quality 模式**:N-算法全成功筛选,runs 较少(Long ~5–12, Short ~17–30),成功率恒为 100%,**仅汇报路径质量**(长度、曲率、计算时间)——对应 `table2_kpis_mean_filtered.csv`,config 参数 `filter_all_succeed: true`。
 
-**runs20260408_{dqn,ddqn}**:§4.5 cnn-dqn vs cnn-ddqn 底座消融数据(12 train + 24 infer),当前主要对比来源。
+**2_experiment/runs20260408_{dqn,ddqn}**:§4.5 cnn-dqn vs cnn-ddqn 底座消融数据(12 train + 24 infer),当前主要对比来源。
 
 ## 踩坑
 
