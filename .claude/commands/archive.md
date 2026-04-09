@@ -1,6 +1,14 @@
 归档本次会话到 bigmemory + .pipeline/ 知识库。
 
-## 主 AI 职责(仅此两步)
+## 主 AI 职责(仅此三步)
+
+### Step 0: 导出会话记录
+
+立即执行:
+```bash
+python3 .claude/scripts/dump_conversation.py
+```
+此脚本自动找到当前会话的 JSONL,导出主会话 + 所有 subagent 到 `bigmemory/冷区/会话记录/YYYY-MM-DD_HHMM.md`。
 
 ### Step 1: 启动协调 Agent
 
@@ -50,9 +58,10 @@
 - 写入分诊通过的 Q1/Q2 条目
 - 追加模式,写前 Grep 查重
 
-**Worker 2: 冷区认知层**(调研记录 + 会话记录)
-- 写入分诊通过的 Q3/Q6 条目
+**Worker 2: 冷区认知层**(调研记录)
+- 写入分诊通过的 Q3 条目
 - 调研记录必须包含 URL 或文献标识
+- Q6(会话记录)已由 Step 0 的 dump_conversation.py 自动处理,无需再写
 
 **Worker 3: 冷区决策层**(心路历程 + 里程碑 + 偏好/工作流)
 - 写入分诊通过的 Q4/Q5 条目
