@@ -129,7 +129,7 @@ fi
 # ----------------------------------------------------------------------------
 echo ""
 echo "[$(ts)] === Phase C: launching 24 parallel infer ==="
-bash "${PROJ}/scripts/launch_24par_cnn_dqn_infer.sh" || {
+bash "${PROJ}/scripts/run/launch_24par_cnn_dqn_infer.sh" || {
   echo "[$(ts)] Phase C: launcher returned non-zero; continuing to wait anyway"
 }
 sleep 15
@@ -171,7 +171,7 @@ echo ""
 echo "[$(ts)] === Phase E: aggregating to xlsx ==="
 
 AGG_DIR="${RUNS_ROOT}/aggregated_${PIPELINE_TS}"
-"${CONDA}" run --cwd "${PROJ}" -n "${ENV}" python scripts/collect_cnn_dqn_to_xlsx.py \
+"${CONDA}" run --cwd "${PROJ}" -n "${ENV}" python scripts/analysis/collect_cnn_dqn_to_xlsx.py \
   --runs-root "${RUNS_ROOT}" \
   --out-dir "${AGG_DIR}"
 COLLECT_RC=$?
