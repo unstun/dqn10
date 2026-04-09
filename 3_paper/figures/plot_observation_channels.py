@@ -2,8 +2,8 @@
 """生成观测空间示意图：原始占据图 → 12×12 降采样三通道。
 
 用法：
-    cd DQN9
-    python paper/figures/plot_observation_channels.py
+    cd DQN10
+    python 3_paper/figures/plot_observation_channels.py
 """
 
 from __future__ import annotations
@@ -11,9 +11,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# 确保项目根目录在 sys.path
+# 确保 2_experiment/ 在 sys.path（ugv_dqn 包所在目录）
 _ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_ROOT))
+sys.path.insert(0, str(_ROOT / "2_experiment"))
 
 import cv2
 import matplotlib.pyplot as plt

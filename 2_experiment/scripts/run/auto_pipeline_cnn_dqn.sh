@@ -5,7 +5,7 @@
 # sleeps; all progress goes to a single pipeline log.
 #
 # Launch (remote):
-#   nohup bash ~/DQN10/scripts/auto_pipeline_cnn_dqn.sh \
+#   nohup bash ~/DQN10/2_experiment/scripts/run/auto_pipeline_cnn_dqn.sh \
 #     > /tmp/auto_pipeline_cnn_dqn_boot.log 2>&1 < /dev/null &
 #
 # Phases:
@@ -19,9 +19,10 @@
 set -uo pipefail
 
 PROJ=/home/ubuntu/DQN10
+EXP="${PROJ}/2_experiment"
 ENV=ros2py310
 CONDA=/home/ubuntu/miniconda3/bin/conda
-RUNS_ROOT="${PROJ}/runs20260408_dqn"
+RUNS_ROOT="${EXP}/runs20260408_dqn"
 LOG_DIR="${RUNS_ROOT}/logs"
 mkdir -p "${LOG_DIR}"
 
@@ -129,7 +130,7 @@ fi
 # ----------------------------------------------------------------------------
 echo ""
 echo "[$(ts)] === Phase C: launching 24 parallel infer ==="
-bash "${PROJ}/scripts/run/launch_24par_cnn_dqn_infer.sh" || {
+bash "${EXP}/scripts/run/launch_24par_cnn_dqn_infer.sh" || {
   echo "[$(ts)] Phase C: launcher returned non-zero; continuing to wait anyway"
 }
 sleep 15
@@ -171,7 +172,7 @@ echo ""
 echo "[$(ts)] === Phase E: aggregating to xlsx ==="
 
 AGG_DIR="${RUNS_ROOT}/aggregated_${PIPELINE_TS}"
-"${CONDA}" run --cwd "${PROJ}" -n "${ENV}" python scripts/analysis/collect_cnn_dqn_to_xlsx.py \
+"${CONDA}" run --cwd "${EXP}" -n "${ENV}" python scripts/analysis/collect_cnn_dqn_to_xlsx.py \
   --runs-root "${RUNS_ROOT}" \
   --out-dir "${AGG_DIR}"
 COLLECT_RC=$?

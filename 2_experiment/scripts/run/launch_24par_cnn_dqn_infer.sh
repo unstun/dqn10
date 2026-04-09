@@ -14,10 +14,11 @@
 set -euo pipefail
 
 PROJ=/home/ubuntu/DQN10
+EXP="${PROJ}/2_experiment"
 ENV=ros2py310
 CONDA=/home/ubuntu/miniconda3/bin/conda
 RUNS_ROOT=runs20260408_dqn
-LOG_DIR="${PROJ}/${RUNS_ROOT}/logs"
+LOG_DIR="${EXP}/${RUNS_ROOT}/logs"
 mkdir -p "${LOG_DIR}"
 
 PROFILES=(
@@ -53,10 +54,10 @@ PROFILES=(
 TS=$(date +%Y%m%d_%H%M%S)
 echo "[$(date '+%F %T')] launching ${#PROFILES[@]} parallel cnn-dqn infer profiles (ts=${TS})"
 
-cd "${PROJ}"
+cd "${EXP}"
 for p in "${PROFILES[@]}"; do
   LOG="${LOG_DIR}/infer_${p}_${TS}.log"
-  setsid bash -c "PYTHONUNBUFFERED=1 \"${CONDA}\" run --cwd \"${PROJ}\" -n \"${ENV}\" \
+  setsid bash -c "PYTHONUNBUFFERED=1 \"${CONDA}\" run --cwd \"${EXP}\" -n \"${ENV}\" \
     python -u infer.py --profile \"${p}\" --runs-root \"${RUNS_ROOT}\" \
     > \"${LOG}\" 2>&1 < /dev/null" &
   echo "  spawned pid=$! profile=${p}"
