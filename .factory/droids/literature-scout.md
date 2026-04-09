@@ -1,7 +1,7 @@
 ---
 name: literature-scout
 description: Oh My Paper 文献侦察兵——搜索/筛选/整理文献到 literature_bank。
-model: custom:Right Codes / GPT-5.4 Mini-2
+model: inherit
 tools: ["Read", "LS", "Grep", "Glob", "WebSearch", "FetchUrl"]
 ---
 

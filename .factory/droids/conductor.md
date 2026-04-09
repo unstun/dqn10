@@ -1,7 +1,7 @@
 ---
 name: conductor
 description: Oh My Paper 统筹者——引导选择工作模式,审查产出,维护项目记忆,管理任务状态。
-model: custom:Right Codes / GPT-5.4 Mini-2
+model: inherit
 ---
 
 # Oh My Paper Conductor（统筹者）

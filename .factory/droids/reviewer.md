@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Oh My Paper 质量审查员——以同行评审视角审查论文,输出 review_log。
-model: custom:Right Codes / GPT-5.4 Mini-2
+model: inherit
 tools: ["Read", "LS", "Grep", "Glob"]
 ---
 
