@@ -12,10 +12,7 @@
 ## 会话启动
 
 1. Dr Sun 提出第一句话后,**自动**派 memory-worker 子 agent 从 bigmemory 全局抓取与问题相关的上下文
-2. 基于返回的上下文 + 如需任务列表读 `.pipeline/tasks.json`
-3. 开始工作
-
-如果 `.pipeline/project_truth.md` 未填充,说明项目未初始化。请先与 Dr Sun 确认研究主题再开始。
+2. 基于返回的上下文开始工作
 
 ## 三阶段目录结构
 
@@ -63,16 +60,20 @@ DQN10/
 
 **记忆检索模型**: Droid 派 memory-worker(gpt-5.4);Claude Code 用 `--model sonnet` 或直接 Read。
 
-**.pipeline/(研究专用)**:
+**.pipeline/(项目知识库,平文件数据库)**:
 
-- `project_truth.md` — 研究主题、假设、方法(只读,除非你是 Conductor)
-- `tasks.json` — 任务列表
-- `terminology.md` — 术语规范表(中英文术语、禁用词)
+- `terminology/` — 术语规范表(中英文术语、禁用词)
+- `literature/` — 文献库(已读/待读论文索引,index.md 为主表)
+- `survey/` — 综述库(每个调研主题一个 `.md`)
+- `experiments/` — 实验台账(每轮实验一个 `YYYYMMDD_<topic>.md`)
 - `papers/` → symlink 到 `1_survey/papers/`(论文 PDF 本地副本,命名 `<CitationKey>.pdf`,付费墙补充材料加 `_supp` 后缀)
+
+与 bigmemory(会话记忆,按时间衰减)互补;`.pipeline/` 存放长期有效的结构化项目知识,不自动过期。
+`/archive` 会话结束时自动维护两者。
 
 ## 角色
 
-- **Conductor**:规划方向、审查结果、更新 project_truth、管理 tasks.json
+- **Conductor**:规划方向、审查结果、管理 `.pipeline/` 知识库
 - **Worker**:执行具体任务(实验/文献/写作)
 
 ## 硬规则(MUST/NEVER)
@@ -104,7 +105,7 @@ DQN10/
 25. MUST:代码包名为 `ugv_dqn`(不是 `amr_dqn`),所有 import 使用 `from ugv_dqn.xxx import ...`。
 26. MUST:论文润色工作流——多 Agent 并行搜同领域真实句子 → 提炼句式特征 → 按句式改写并标注对标原句 → 自检删掉是否丢失信息。
 27. NEVER:在一个会话里串联多个任务。
-28. NEVER:修改 `project_truth.md`(除非当前角色是 Conductor)。
+28. NEVER:未经 Conductor 角色授权修改 `.pipeline/` 知识库的结构(增删库/改 README)。
 29. NEVER:同一时间有两个 Claude Code 会话操作本项目。
 30. NEVER:论文中使用括号补充说明(缩写定义除外,如"深度强化学习(DRL)"),改用"即""由…构成""如图…所示"。
 31. NEVER:公式中使用 `grid_size` 等代码风格变量名,须用 $\Delta c$、$\delta$、$\epsilon$ 等标准记法,独立公式末尾不加标点。
@@ -128,7 +129,7 @@ DQN10/
 | 1      | uhost-1nwalbarw6ki | 117.50.216.203 | ubuntu | RTX 4090 (24GB) | `$HOME/DQN10/`           |
 | 2      | ubuntu-zt          | (ZeroTier)     | sun    | —              | 长期训练 + checkpoint 存档 |
 
-连接方式优先 paramiko(本地无 sshpass)。凭证不写入 repo,见 `.pipeline/project_truth.md` 机密区。
+连接方式优先 paramiko(本地无 sshpass)。凭证不写入 repo。
 
 ## 常用命令
 
@@ -179,8 +180,9 @@ ls $EXP/runs/$RUN/train_*/infer/*/table2_kpis.csv 2>/dev/null && echo DONE || ec
 - Claude Code:`claude -p --model sonnet` 或直接 Read/Grep
 - memory-worker 看不到 CLAUDE.md,它的 prompt 在 `.factory/droids/memory-worker.md`
 
-**出口(手动)**:Dr Sun 在对话中调用 `/archive`,主 AI 按指令执行分诊 + 冷区归档 + 热区刷新。
+**出口(手动)**:Dr Sun 在对话中调用 `/archive`,主 AI 按指令执行分诊 + 冷区归档 + 热区刷新 + `.pipeline/` 知识库更新。
 - 归档完全由 Dr Sun 自主决定,无 hook 强制
+- 多 Agent 并行写入(Claude Code: sonnet,Droid: gpt-5.4-mini)
 - 所有写入在对话中透明进行(用户可见)
 
 ## Compact 须知
