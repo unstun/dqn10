@@ -1,7 +1,7 @@
 ---
 name: experiment-driver
 description: Oh My Paper 实验驾驶员——设计/实现/运行实验,记录到 experiment_ledger。
-model: inherit
+model: custom:Right Codes / GPT-5.4 Mini-2
 ---
 
 # Oh My Paper Experiment Driver（实验驾驶员）

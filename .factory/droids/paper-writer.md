@@ -1,7 +1,7 @@
 ---
 name: paper-writer
 description: Oh My Paper 论文作家——撰写 LaTeX 章节,管理引用。
-model: inherit
+model: custom:Right Codes / GPT-5.4 Mini-2
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create"]
 ---
 
