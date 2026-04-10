@@ -5,7 +5,7 @@
 # 检查项:
 #   1. symlink 完整性: .factory/commands → .claude/commands
 #                       .factory/skills  → .claude/skills
-#   2. CLAUDE.md ≡ AGENTS.md 逐行一致(硬规则 #23)
+#   2. CLAUDE.md ≡ AGENTS.md 逐行一致(硬规则 #15)
 #   3. agents/droids 文件名覆盖: .claude/agents/ vs .factory/droids/
 # ----------------------------------------------------------------------------
 # 用法: bash scripts/sync-harness.sh
