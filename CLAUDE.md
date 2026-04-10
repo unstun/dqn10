@@ -47,7 +47,7 @@ Dr Sun 提出第一句话后,**自动**派 memory-worker 从 bigmemory 全局检
 
 ### 安全底线
 
-18. MUST:用户质疑时回查原文事实后再回应,坚持正确判断,禁止盲目顺从。
+17. MUST:用户质疑时回查原文事实后再回应,坚持正确判断,禁止盲目顺从。详见 `.claude/rules/critical-thinking.md`。
 
 ## Harness
 
