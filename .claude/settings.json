@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if git diff --quiet && git diff --cached --quiet; then exit 0; else git add -A && git commit -m \"auto-backup before edit\" && git push 2>/dev/null || true; fi'",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   }
 }
