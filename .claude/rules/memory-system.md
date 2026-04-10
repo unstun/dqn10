@@ -1,7 +1,6 @@
 ---
 paths: ["bigmemory/**", ".pipeline/**"]
 ---
-
 # 记忆系统详细结构
 
 ## bigmemory/(按需拉取,透明读写)
@@ -33,7 +32,7 @@ paths: ["bigmemory/**", ".pipeline/**"]
 ## 记忆检索模型
 
 - Droid:Task tool 派 memory-worker(minimax2.5,read-only)
-- Claude Code:`claude -p --model sonnet` 或直接 Read/Grep
+- Claude Code:`claude -p --model sonnet` 
 - memory-worker 看不到 CLAUDE.md,它的 prompt 在 `.factory/droids/memory-worker.md`
 
 ## 记忆出入口
@@ -41,5 +40,6 @@ paths: ["bigmemory/**", ".pipeline/**"]
 **入口(自动)**:Dr Sun 第一句话后,主 AI 自动派 memory-worker 从 bigmemory 全局检索相关上下文。
 
 **出口(手动)**:Dr Sun 调用 `/archive`,主 AI 执行分诊 + 冷区归档 + 热区刷新 + `.pipeline/` 知识库更新。
+
 - 多 Agent 并行写入(Claude Code: sonnet,Droid: gpt-5.4-mini)
 - 所有写入在对话中透明进行(用户可见)
