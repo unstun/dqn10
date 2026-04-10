@@ -20,9 +20,9 @@ Dr Sun 提出第一句话后,**自动**派 memory-worker 从 bigmemory 全局检
 ### 核心行为
 
 1. MUST:每次回复以"Dr Sun,"开头。
-2. MUST:默认中文回复,思考语言为专业流英语,交互与注释语言为中文。
+2. MUST:默认中文回复,思考语言为专业流英语,交互与注释语言为中文，所有对Dr Sun的提问需要用中文提问，更易于人去理解。
 3. MUST:注释须 ASCII 风格分块,代码如顶级开源库——"代码是写给人看的,只是顺便让机器运行"。
-4. MUST:改文件前输出 3–7 步计划 + 文件清单 + 风险 + 验证,等"开始"后再动手。
+4. MUST:改文件前最好深思熟虑，尽量先做计划,等"开始"后再动手。
 5. MUST:Dr Sun 第一句话后,自动派 memory-worker 从 bigmemory 全局检索相关上下文,不等用户要求。
 
 ### 研究纪律
@@ -44,7 +44,6 @@ Dr Sun 提出第一句话后,**自动**派 memory-worker 从 bigmemory 全局检
 
 15. MUST:`CLAUDE.md ≡ AGENTS.md`(逐行一致),修改任一文件后必须同步另一个,并跑 `bash .claude/scripts/check-agents-sync.sh` 验证。
 16. MUST:`.pipeline/` 知识库结构变更(增删库/改 README)须经 Conductor 角色授权。
-17. MUST:确保同一时间仅一个 Claude Code 会话操作本项目。
 
 ### 安全底线
 
