@@ -1,0 +1,36 @@
+{
+  "name": "Rowen",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2402.10612",
+  "maturity": "research",
+
+  "architecture": "Rowen（Retrieve Only When It Needs）受神经科学启发，模拟人脑在内部思考与外部感知之间动态切换的机制。核心模块：一致性不确定性估计器——对输入查询，生成语义等价的多语言翻译版本（或调用多个不同 LLM），分别获取响应，计算响应之间的语义不一致程度作为不确定性分数。不确定性超过阈值时，触发外部检索补充事实；不确定性低时，直接使用模型参数化知识作答。检索后将外部信息注入生成过程，并再次用一致性模块评估最终输出可靠性。发表于 SIGIR-AP 2025。",
+  "retrieval_trigger": "confidence-based — 通过跨语言/跨模型响应一致性作为不确定性代理指标：高一致性=模型已知=直接作答；低一致性=模型不确定=触发检索。与 FLARE 的 token 概率方案相比，该方案无需访问 token 概率，适用于黑盒 LLM。",
+  "verification_method": "consistency-check — 跨语言/跨模型一致性检查是核心验证机制：语义等价问题在不同语言或不同模型下的响应不一致，说明模型对该问题知识不稳定，需要外部检索验证。",
+  "cache_tier_strategy": "none — 不涉及缓存机制。",
+
+  "knowledge_source_types": "通用外部知识库（支持 Wikipedia 等文本检索源）；检索源类型与不确定性估计机制独立",
+  "retrieval_method": "向量语义检索（论文实验中使用标准检索器，检索查询由原始问题或改写后的问题构成）",
+  "hallucination_mitigation": "双层防御：(1) 内部幻觉——对模型参数化知识不稳定的问题强制检索外部事实，避免模型在不确定时'自信作答'；(2) 外部幻觉——通过一致性检验评估检索增强后的输出可靠性，防止引入错误外部信息。在 TruthfulQA 上 GPT-Judge 得分 59.34%，比 SOTA baseline +16.74%。",
+  "offline_capability": "hybrid — 一致性估计可使用本地 LLM（多模型模式）或调用在线 API（多语言模式）；检索库可本地部署",
+  "local_model_support": "支持（多模型模式）— 使用多个本地模型进行一致性估计，无需访问内部状态，适用于黑盒 LLM；单模型多语言模式可完全在线或本地运行",
+  "embedding_strategy": "standard — 检索阶段使用标准语义检索",
+
+  "setup_complexity": "medium — 需要配置多语言翻译接口或多模型调用端点、计算语义一致性（如 BERTScore 或 LLM 判断）、阈值调参；相比 SeaKR 无需访问内部状态，实现相对简洁",
+  "token_cost": "增加 — 多语言翻译+多次生成增加额外 token 消耗（通常生成 2-3 种语言版本）；但仅对不确定问题触发检索，总体 token 消耗低于始终检索策略",
+  "latency": "秒级 — 多语言翻译+多次生成约 2-5 秒；一致性计算约 500ms；检索约 1-2 秒；总延迟 3-8 秒",
+  "dqn10_fit": "契合度较高。Rowen 的跨语言/跨模型一致性方案不依赖内部状态访问，可与当前 MCP+Claude 架构兼容：通过调用 Claude 的多次翻译生成并计算语义一致性，判断是否触发 bigmemory/.pipeline/ 检索。实际集成要点：(1) 设计一致性计算函数（使用 BERTScore 或请求 LLM 打分）；(2) 阈值在 DQN 领域查询上校准；(3) 与 MCP WebSearch 对接检索路径。是当前最适合 DQN10 实际部署的判定机制之一。",
+
+  "domain_adaptability": "强 — 一致性估计机制与领域无关；适配新领域只需在领域查询上校准不确定性阈值",
+  "incremental_update": "支持 — 检索库可增量更新；一致性模型无需重训",
+  "citation_traceability": "source-link — 可记录触发检索时使用的外部来源",
+  "temporal_awareness": "static — 无时间感知；检索库更新频率决定时效性",
+  "provenance_tracking": "source-link — 记录检索使用的来源链接",
+  "memory_consolidation": "manual — 无自动整合机制",
+
+  "benchmark_comparison": "SIGIR-AP 2025 发表（ACM DL: 10.1145/3767695.3769500）。TruthfulQA GPT-Judge 59.34%（SOTA +16.74%）；StrategyQA 75.60%（超过自我改进和 RAG baseline）；相比始终检索方案显著减少不必要检索次数，具体检索减少比例论文中有报告。",
+  "known_limitations": "1. 多语言翻译增加额外延迟和 token 成本；2. 语义一致性计算需要选择合适的相似度度量（BERTScore 的选择对结果有影响）；3. 阈值调参在新领域需要少量标注数据；4. 论文明确指出'引入外部信息本身可能增加外部幻觉风险'，需要检索后再次验证；5. 多模型模式需要维护多个 LLM 实例，计算资源需求较高。",
+  "integration_effort": "中等 — 主要工作：(1) 实现跨语言一致性估计函数（约 1 周）；(2) 在 DQN 领域查询集上校准阈值（1-3 天）；(3) 与 MCP 工具链对接（1-2 天）。总估计 1-2 周。",
+
+  "uncertain": ["具体语义一致性计算实现细节", "StrategyQA与其他数据集对比数值"]
+}

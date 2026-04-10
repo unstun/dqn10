@@ -1,0 +1,190 @@
+topic: "LLM 本地知识缓存系统设计 — 通过本地验证知识库减少 LLM 幻觉"
+date: "2026-04-10"
+scope: "最近 1 年 (2025-04 ~ 2026-04)"
+motivation: |
+  LLM 仅做 token 级概率预测,无内置事实验证机制。
+  当前工作流: L3(LLM参数知识) > L2(联网搜索) > L1(本地缓存,缺失)。
+  目标: 为 DQN10 项目设计 L1 层 — 基于 MCP 的本地知识缓存服务。
+
+# ============================================================
+#  Items — 27 个调研对象,5 个方向
+# ============================================================
+items:
+
+  # --- A. 判定机制: AI 何时应该查证而非直接回答 (7) ---
+  - id: A1
+    name: "Self-RAG"
+    desc: "模型自主决定何时检索,生成反思 token (retrieve/critique/support)"
+    source: "https://arxiv.org/abs/2310.15346"
+    year: 2023
+
+  - id: A2
+    name: "Adaptive RAG"
+    desc: "根据查询复杂度动态选择策略: 无检索/单次/多次迭代"
+    source: "https://arxiv.org/abs/2403.14403"
+    year: 2024
+
+  - id: A3
+    name: "CRAG (Corrective RAG)"
+    desc: "检索后自我纠正,评估检索结果可靠性再决定是否使用"
+    source: "https://arxiv.org/abs/2401.15884"
+    year: 2024
+
+  - id: A4
+    name: "FLARE"
+    desc: "生成过程中前瞻预测,检测低置信度 token 后主动触发检索"
+    source: "https://arxiv.org/abs/2305.06983"
+    year: 2023
+
+  - id: A5
+    name: "SKR / SeaKR"
+    desc: "LLM 先评估自身是否'已知',已知直接答,未知再检索,避免不必要检索引入知识冲突"
+    source: "https://arxiv.org/abs/2310.05002"
+    year: 2023-2024
+
+  - id: A6
+    name: "Rowen"
+    desc: "跨语言/跨模型一致性检测不确定性,仅对不确定回答触发检索,TruthfulQA +16.74%"
+    source: "https://arxiv.org/abs/2402.10612"
+    year: 2025
+
+  - id: A7
+    name: "RouteRAG"
+    desc: "用 RL 端到端学习'何时推理/何时从文本检索/何时从图检索/何时出答案'的统一策略"
+    source: "https://arxiv.org/abs/2512.09487"
+    year: 2025
+
+  # --- B. 缓存工程: 缓存什么、怎么命中 (6) ---
+  - id: B1
+    name: "GPTCache"
+    desc: "语义级缓存,相似问题复用已验证答案,Zilliz 开源"
+    source: "https://github.com/zilliztech/GPTCache"
+    year: 2023
+
+  - id: B2
+    name: "Semantic Cache 方案对比"
+    desc: "Redis Semantic Cache / LangChain Cache / 其他轻量方案横评"
+    source: "综合对比"
+    year: 2024-2025
+
+  - id: B3
+    name: "Krites (Apple)"
+    desc: "异步验证语义缓存: 强命中直返、灰区异步 LLM 判定、动态缓存写入,覆盖率 +136%~290%"
+    source: "https://arxiv.org/abs/2602.13165"
+    year: 2026
+
+  - id: B4
+    name: "Bifrost"
+    desc: "开源 AI 网关级双层缓存(精确哈希+向量相似),50x 快于 LiteLLM"
+    source: "https://github.com/maximhq/bifrost"
+    year: 2025
+
+  - id: B5
+    name: "Amazon Bedrock Verified Semantic Cache"
+    desc: "三级匹配: 强匹配直返、部分匹配 few-shot 引导、低匹配回退 LLM — 工业最成熟参考"
+    source: "https://aws.amazon.com/blogs/machine-learning/reducing-hallucinations-in-llm-agents-with-a-verified-semantic-cache-using-amazon-bedrock-knowledge-bases/"
+    year: 2025
+
+  - id: B6
+    name: "Upstash Semantic Cache"
+    desc: "Serverless 向量缓存,内置 embedding,免费层 500K 请求/月,轻量低成本参考"
+    source: "https://upstash.com/blog/semantic-caching-for-speed-and-savings"
+    year: 2025
+
+  # --- C. MCP 生态与记忆系统 (6) ---
+  - id: C1
+    name: "MCP 知识服务架构"
+    desc: "Model Context Protocol 封装本地知识库为 MCP server 的设计模式"
+    source: "https://modelcontextprotocol.io/"
+    year: 2024-2025
+
+  - id: C2
+    name: "bigmemory/.pipeline/ 现有架构"
+    desc: "DQN10 项目已有的热区/冷区/知识库三层架构,原型基础"
+    source: "本地分析"
+    year: 2025-2026
+
+  - id: C3
+    name: "Zep / Graphiti"
+    desc: "时序知识图谱 MCP Server,每个事实带有效期窗口,优于 MemGPT"
+    source: "https://arxiv.org/abs/2501.13956"
+    year: 2025
+
+  - id: C4
+    name: "Mem0"
+    desc: "向量+图谱双模式 Agent 记忆层,自动提取/合并/去重,token 消耗减少 90%"
+    source: "https://arxiv.org/abs/2504.19413"
+    year: 2025
+
+  - id: C5
+    name: "ConPort (Context Portal)"
+    desc: "项目级知识图谱 MCP Server,SQLite 存储,与 bigmemory/.pipeline/ 高度对标"
+    source: "https://github.com/GreatScottyMac/context-portal"
+    year: 2025
+
+  - id: C6
+    name: "txtai MCP Server"
+    desc: "本地全功能语义搜索+知识图谱+关系数据库一体,可打包为可分享归档"
+    source: "https://github.com/neuml/txtai"
+    year: 2025
+
+  # --- D. 验证与事实核查 (5) ---
+  - id: D1
+    name: "MiniCheck"
+    desc: "770M 参数达 GPT-4 级事实核查精度,成本降 400x,适合本地知识写入前质量门控"
+    source: "https://arxiv.org/abs/2404.10774"
+    year: 2024
+
+  - id: D2
+    name: "SAFE (Google DeepMind)"
+    desc: "LLM Agent 分解长文本为原子事实,逐条用搜索验证,比人工标注便宜 20x"
+    source: "https://arxiv.org/abs/2403.18802"
+    year: 2024
+
+  - id: D3
+    name: "AFEV"
+    desc: "迭代式原子事实验证: 分解→证据重排→事实专属示例检索→验证反馈注入下轮"
+    source: "https://arxiv.org/html/2506.07446v1"
+    year: 2025
+
+  - id: D4
+    name: "Domain-Grounded Tiered Retrieval"
+    desc: "四阶段自调节: 内在验证+早退→领域探测→精细过滤→外在再生成,TimeQA 83.7%"
+    source: "https://arxiv.org/abs/2603.17872"
+    year: 2026
+
+  - id: D5
+    name: "RAGLens / SAE-based"
+    desc: "稀疏自编码器解缠 LLM 内部激活识别幻觉特征,>80% AUC 且可解释"
+    source: "https://arxiv.org/abs/2512.08892"
+    year: 2025
+
+  # --- E. 架构范式 (3) ---
+  - id: E1
+    name: "A-RAG (Agentic RAG)"
+    desc: "暴露分层检索接口给 Agent,满足自主策略+迭代执行+工具交替三原则"
+    source: "https://arxiv.org/abs/2602.03442"
+    year: 2026
+
+  - id: E2
+    name: "Anthropic Contextual Retrieval"
+    desc: "embedding 前用 Claude 为每个 chunk 生成上下文描述,检索失败率降 35-67%"
+    source: "https://www.anthropic.com/news/contextual-retrieval"
+    year: 2024
+
+  - id: E3
+    name: "Microsoft GraphRAG"
+    desc: "从文本提取知识图谱+社区层次+摘要,溯源能力强,成本 3-5x 基线 RAG"
+    source: "https://github.com/microsoft/graphrag"
+    year: 2024-2026
+
+# ============================================================
+#  Execution — 深度调研并行配置
+# ============================================================
+execution:
+  batch_size: 2            # 每轮并行 2 个 agent
+  items_per_agent: 13-14   # 每个 agent 调研 13-14 个 items
+  output_dir: "./results"
+  agent_assignment:
+    agent_1: [A1, A2, A3, A4, A5, A6, A7, B1, B2, B3, B4, B5, B6]  # 判定机制 + 缓存工程 (13)
+    agent_2: [C1, C2, C3, C4, C5, C6, D1, D2, D3, D4, D5, E1, E2, E3]  # MCP生态 + 验证核查 + 架构范式 (14)

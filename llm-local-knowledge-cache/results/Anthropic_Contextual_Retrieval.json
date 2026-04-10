@@ -1,0 +1,36 @@
+{
+  "name": "Anthropic Contextual Retrieval",
+  "category": "架构范式",
+  "source": "https://www.anthropic.com/news/contextual-retrieval",
+  "maturity": "production-ready",
+
+  "architecture": "Contextual Retrieval 在 embedding 前用 Claude（默认 Claude 3 Haiku）为每个文档 chunk 生成上下文描述（50-100 tokens），并将描述前置拼接到 chunk 内容后再建索引。问题根源：传统 RAG 将文档切片后丢失了每个片段的文档级上下文（如「收入增长了 3%」不知道是哪家公司）。解决方案：提示 Claude「为该 chunk 在文档中的位置生成简短上下文描述，用于改善搜索检索」，生成的上下文描述精确补充 chunk 缺失的文档级信息。检索层：语义 embedding（Gemini/Voyage 效果最佳）+ BM25 词法匹配 + Rank Fusion 融合 + 可选 Reranker（进一步精化）。成本优化：使用 Prompt Caching，为每个文档所有 chunk 生成上下文的一次性成本约为 $1.02/百万 token。",
+  "retrieval_trigger": "always（标准检索触发，上下文描述在索引构建时预生成）",
+  "verification_method": "none",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "文档知识库（PDF/文本/网页等，切片后处理）",
+  "retrieval_method": "混合（语义 embedding + BM25 词法 + Rank Fusion + 可选 Reranker）",
+  "hallucination_mitigation": "通过为每个 chunk 补充文档级上下文，减少检索到孤立片段（缺上下文）的概率，从而减少 LLM 因缺乏完整背景而产生的幻觉",
+  "offline_capability": "hybrid（上下文生成需要 Claude API；但生成一次后索引可离线使用）",
+  "local_model_support": "部分（上下文描述生成依赖 Claude API；embedding 和检索可本地运行；可用本地 LLM 替代 Claude 做上下文生成，效果差异未官方测试）",
+  "embedding_strategy": "contextual（核心特性：chunk 前添加上下文描述后再 embedding，显著区别于标准 embedding）",
+
+  "setup_complexity": "low（在现有 RAG 管道中插入上下文生成步骤；Claude API 调用，prompt caching 降低成本）",
+  "token_cost": "一次性增加（索引构建时约 $1.02/百万 token；检索阶段 token 消耗不变）",
+  "latency": "索引构建：分钟级（API 调用生成描述）；检索：ms 级（预构建索引查询）",
+  "dqn10_fit": "高契合，且实施成本最低。核心价值：DQN10 的 .pipeline/literature/ 和 bigmemory 冷区存在大量孤立 chunk（如实验结果片段脱离了实验设计上下文），Contextual Retrieval 精确解决此问题。具体应用：(1) 为 .pipeline/literature/ 每篇论文的 chunk 生成「在论文 X 第 Y 节中，讨论了...」格式的上下文描述；(2) 为 bigmemory 冷区每条归档记录生成「该记录来自 YYYY-MM-DD 的会话，涉及实验...」的描述；(3) 与现有 ACE 语义搜索组合（ACE 可能已用类似方案），进一步提升检索质量。检索失败率降低 35-67% 直接解决当前 ACE 检索质量不稳定的痛点。",
+
+  "domain_adaptability": "强（无领域约束；适配 DQN 领域只需调整上下文描述 prompt 模板）",
+  "incremental_update": "支持（新增 chunk 单独生成上下文描述后更新索引，成本可控）",
+  "citation_traceability": "chunk-level（上下文描述包含文档位置信息，增强溯源能力）",
+  "temporal_awareness": "static（无时序感知，需配合元数据字段）",
+  "provenance_tracking": "chunk-level（上下文描述明确记录 chunk 在文档中的位置）",
+  "memory_consolidation": "none（不涉及记忆整合）",
+
+  "benchmark_comparison": "Anthropic 官方测试（top-20 chunk 检索失败率，基线 5.7%）：Contextual Embeddings 单独：降低 35%（5.7% → 3.7%）；Contextual Embeddings + Contextual BM25：降低 49%（5.7% → 2.9%）；+ Reranker：降低 67%（5.7% → 1.9%）。最佳 embedding 模型：Gemini 和 Voyage。",
+  "known_limitations": "1. 上下文生成依赖 Claude API（无法完全离线），本地 LLM 替代效果未验证；2. 对知识库 <200,000 token 的场景收益有限（可直接全文放入 context）；3. chunk 边界和大小选择仍影响性能；4. Reranker 增加检索延迟（需权衡精度和速度）；5. 中文文档的上下文描述质量依赖 Claude 的中文理解能力",
+  "integration_effort": "低。在现有索引构建管道中插入一个 Claude API 调用步骤：(1) 实现 chunk 上下文描述生成函数（0.5 天）；(2) 重新构建 .pipeline/literature/ 索引（视文档量，约 1-2 小时/千篇）；(3) 可选：升级 bigmemory 冷区索引（0.5 天）。总计约 1-2 天。",
+
+  "uncertain": []
+}

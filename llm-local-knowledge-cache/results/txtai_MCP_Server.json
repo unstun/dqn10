@@ -1,0 +1,36 @@
+{
+  "name": "txtai MCP Server",
+  "category": "MCP生态",
+  "source": "https://github.com/neuml/txtai",
+  "maturity": "production-ready",
+
+  "architecture": "txtai 是全功能 AI 框架，核心为嵌入式数据库（embeddings database），融合稀疏向量索引 + 稠密向量索引 + 图网络 + 关系数据库于一体。组件包括：向量搜索（语义/多模态）、文档 embedding（文本/PDF/音频/图像/视频）、LLM 管道（问答/摘要/标注/翻译）、Workflow（多模型管道）、Agent（组合 embeddings + 管道 + workflow）、API 层（REST Web API + MCP Server）。MCP Server 特性：可将完整 txtai embeddings 数据库打包为可分享归档（.tar.gz），包含索引文件、文档存储、配置，实现知识库的跨机器迁移和分发。支持多语言绑定（JavaScript/Java/Rust/Go）。",
+  "retrieval_trigger": "always（MCP 工具调用触发检索）",
+  "verification_method": "none（框架本身无内置验证，需外部集成）",
+  "cache_tier_strategy": "none（不是缓存层，是知识存储和检索框架）",
+
+  "knowledge_source_types": "文本文件、PDF、音频、图像、视频、代码、数据库、API 数据流（多模态全覆盖）",
+  "retrieval_method": "混合（稀疏向量 + 稠密向量 + SQL 关系查询 + 图网络遍历）",
+  "hallucination_mitigation": "通过精确语义检索为 LLM 提供高质量上下文，减少知识缺失幻觉；支持知识图谱结构化存储增强事实一致性；但无主动幻觉检测机制",
+  "offline_capability": "full-local（pip install txtai，纯本地运行，无云依赖；可用 micromodels 至大型 LLM）",
+  "local_model_support": "支持（从 micromodels 到大型 LLM 全覆盖，支持本地 GGUF/HuggingFace 模型）",
+  "embedding_strategy": "hybrid-sparse-dense（稀疏 + 稠密混合向量索引，优于纯稠密方案）",
+
+  "setup_complexity": "low（pip install txtai；可选依赖按需安装；容器化部署可用）",
+  "token_cost": "不变（txtai 本身不消耗 LLM token；其 LLM 管道功能按需使用）",
+  "latency": "ms 级（本地向量索引检索；复杂 LLM 管道为秒级）",
+  "dqn10_fit": "高契合。最突出价值：可归档特性——将 bigmemory/.pipeline/ 全部内容打包为一个可分享的 txtai 归档，实现 Mac 和 Ubuntu GPU 服务器间的知识库同步（当前痛点）。具体优势：(1) MCP Server 接口直接集成到 Claude Code；(2) 混合向量检索优于当前纯 ACE 方案；(3) 多模态支持可检索论文图表/实验结果图；(4) 全功能框架无需额外组件；(5) 1872 commits，社区活跃。局限：(1) 无时序知识图谱（事实有效期管理）；(2) 无自动记忆合并去重；(3) 功能全面但配置复杂，调优需时间。",
+
+  "domain_adaptability": "强（多模态、多检索方式，可适配论文、代码、实验数据等所有 DQN10 知识类型）",
+  "incremental_update": "支持（embeddings 数据库支持增量索引更新）",
+  "citation_traceability": "chunk-level（文档存储精确到 chunk，可追溯到原始文档片段）",
+  "temporal_awareness": "static（无原生时序感知，需自定义元数据字段实现）",
+  "provenance_tracking": "chunk-level（向量索引到文档片段级别精确溯源）",
+  "memory_consolidation": "manual（无自动去重合并，需人工或脚本维护）",
+
+  "benchmark_comparison": "无专项 benchmark 数据。GitHub 10k+ stars，1872 commits，生产级使用案例包括 RAG 系统和编码 Agent。混合稀疏+稠密检索优于纯语义检索（通用结论，无 txtai 专项数据）。",
+  "known_limitations": "1. 无时序知识图谱，事实有效期需手动管理；2. 无自动记忆合并去重；3. 全功能框架配置项多，初始调优成本较高；4. 多模态索引（音频/视频）需额外模型依赖；5. 无内置事实核查机制",
+  "integration_effort": "中。配置 MCP Server 约 0.5 天；构建 bigmemory/.pipeline/ 的 txtai 索引约 1-2 天；调优检索参数约 1 天。总计约 2-3 天。可归档特性使跨机器同步变为一次性工作。",
+
+  "uncertain": ["benchmark_comparison"]
+}

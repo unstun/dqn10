@@ -1,0 +1,36 @@
+{
+  "name": "SAFE (Google DeepMind)",
+  "category": "验证核查",
+  "source": "https://arxiv.org/abs/2403.18802",
+  "maturity": "research",
+
+  "architecture": "SAFE（Search-Augmented Factuality Evaluator）是 Google DeepMind 提出的长文本事实性评估框架。工作流程：(1) 将 LLM 长文本响应分解为独立的原子事实（Atomic Facts）；(2) 对每条原子事实构建多步推理搜索查询；(3) 使用 Google Search 检索支持/反驳证据；(4) 基于检索证据判断每条事实是否被支持。评估指标：扩展 F1 分数（平衡精确率和召回率），精确率 = 被支持事实比例，召回率 = 相对用户期望响应长度的事实覆盖率。数据集：LongFact（数千问题，跨 38 个主题，GPT-4 生成）。",
+  "retrieval_trigger": "always（每条原子事实触发搜索验证）",
+  "verification_method": "claim-decomposition（长文本→原子事实→逐条搜索验证，两级分解）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "网页搜索结果（Google Search）",
+  "retrieval_method": "向量语义 + 关键词（Google Search 内部实现）",
+  "hallucination_mitigation": "通过将长文本分解为原子事实逐条用外部搜索验证，精确识别不被支持的声明；与众包人工标注对比：SAFE 协议一致率 72%，在 100 个争议案例中胜出 76%，且成本降低 20x 以上",
+  "offline_capability": "cloud-only（依赖 Google Search API，无法离线运行）",
+  "local_model_support": "部分支持（原子事实分解和推理可用本地 LLM，但搜索验证依赖 Google Search）",
+  "embedding_strategy": "none（基于搜索的验证，不使用 embedding）",
+
+  "setup_complexity": "medium（需要 Google Search API 密钥；原子事实分解需要强 LLM；多步推理增加调用次数）",
+  "token_cost": "增加（每条原子事实触发多步 LLM 推理 + 搜索，长文本验证 token 消耗显著）",
+  "latency": "分钟级（每条原子事实多步搜索，长文本响应验证需数分钟）",
+  "dqn10_fit": "中等价值，主要限制是依赖外部搜索。适用场景：(1) 论文写作时验证技术声明是否有文献支撑；(2) 归档前验证 AI 生成的实验结论摘要。局限：(1) Google Search 无法访问 DQN10 本地实验数据库；(2) 延迟分钟级不适合高频归档流程；(3) 成本虽比人工低 20x，但与 MiniCheck（本地运行，400x 更便宜）相比仍较高；(4) 无法验证未公开的新实验结果。对 DQN10 的最佳用途：论文写作阶段批量验证引用声明。",
+
+  "domain_adaptability": "强（评估框架领域无关；DQN 领域的技术声明可通过搜索 arXiv/文献验证）",
+  "incremental_update": "不涉及（评估工具，非知识库）",
+  "citation_traceability": "claim-level（精确到每条原子事实的支持/反驳证据）",
+  "temporal_awareness": "static（无时间感知，搜索结果可能引入时间偏差）",
+  "provenance_tracking": "claim-level（每条原子事实对应具体搜索证据来源）",
+  "memory_consolidation": "none（非知识管理系统）",
+
+  "benchmark_comparison": "LongFact 基准（38 主题，多个 LLM 家族 Gemini/GPT/Claude/PaLM-2）：SAFE 与众包人工标注协议一致率 72%；在 100 个争议案例中胜出 76%；成本比人工标注降低 20x 以上。结论：大型 LLM 通常获得更好的长文本事实性分数。",
+  "known_limitations": "1. 依赖 Google Search，无法验证本地/私有知识（实验日志、未发表结果）；2. 延迟分钟级，不适合实时/高频场景；3. 原子事实分解质量依赖底层 LLM，弱 LLM 分解失败会导致验证错误；4. 无法处理需要领域专业知识才能判断的声明；5. token 消耗大（多步推理×每条事实）",
+  "integration_effort": "中。主要工作：配置 Google Search API（0.5 天）；实现论文写作阶段的批量验证管道（1-2 天）。不适合集成到高频 /archive 流程。",
+
+  "uncertain": []
+}

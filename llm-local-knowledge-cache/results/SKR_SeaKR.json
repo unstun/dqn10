@@ -1,0 +1,36 @@
+{
+  "name": "SKR / SeaKR",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2310.05002 (SKR) / https://arxiv.org/abs/2406.19215 (SeaKR)",
+  "maturity": "research",
+
+  "architecture": "SKR（Self-Knowledge guided Retrieval，2023）：LLM 参考历史已见问题，通过对比输入问题与已知/未知问题集合的相似度，判断自身是否'已知'该问题，已知则直接回答，未知则触发检索。依赖外部问题标注集作为自知识参照。SeaKR（Self-Aware Knowledge Retrieval，2024，清华大学）：更深层的自知识方案，从 LLM 内部隐藏状态（EOS token 的隐层表征）提取不确定性信号，无需外部标注集。具体做法：对同一问题多次采样（k=20）生成，提取每次 EOS token 的隐层向量，计算 Gram 矩阵行列式作为不确定性分数；高不确定性触发检索；检索后对多段落按'哪段使不确定性降低最多'重排序；复杂任务中对'直接回答 vs 综合推理'两种策略选择不确定性更低者。",
+  "retrieval_trigger": "self-knowledge — SKR 依赖外部历史问题集对比判断是否已知；SeaKR 利用 LLM 内部激活状态评估自知识不确定性，两者均属于 LLM 自评是否已知后决定是否检索，是对'何时检索'判定机制的精细化实现。",
+  "verification_method": "consistency-check — SeaKR 通过多次采样内部状态的一致性（Gram 矩阵行列式）衡量不确定性，本质是内部一致性检查，而非外部事实验证；SKR 无显式验证机制。",
+  "cache_tier_strategy": "none — 两者均不涉及缓存机制。",
+
+  "knowledge_source_types": "通用开放域语料库（Wikipedia 等）；SeaKR 对知识源类型无特殊要求",
+  "retrieval_method": "向量语义检索（SeaKR 使用标准 DPR/BM25 检索，再基于不确定性分数对段落重排序）",
+  "hallucination_mitigation": "SKR：对 LLM 已知的问题避免引入检索噪声（减少知识冲突），对未知问题补充外部知识；SeaKR：不确定性驱动的检索减少'自信但错误'的幻觉，重排序机制选择真正有助于降低不确定性的段落，过滤无关或矛盾检索结果。",
+  "offline_capability": "full-local — SeaKR 完全依赖开源 LM 内部状态，无需外部 API；SKR 需要维护历史问题集，也可离线运行",
+  "local_model_support": "SeaKR 仅支持开源 LM（需访问内部隐藏状态）；SKR 理论上支持任何 LLM（通过 prompt 形式询问自知识），但实验在 InstructGPT/ChatGPT 上验证",
+  "embedding_strategy": "standard — 检索阶段使用标准向量检索；SeaKR 的不确定性估计来自内部状态而非 embedding",
+
+  "setup_complexity": "SeaKR: high — 需要访问开源 LM 内部隐藏状态（需本地部署），多次采样（k=20）计算 Gram 矩阵，需要一定的工程实现；SKR: low — 仅需维护历史问题集和 prompt 设计",
+  "token_cost": "SeaKR: 增加 — k=20 次采样用于不确定性估计（但可并行，通过 vLLM 缓解）；SKR: 基本不变，仅增加少量 prompt token",
+  "latency": "SeaKR: 秒级 — k=20 并行采样通过 vLLM 约 500ms-2s；检索和重排序额外增加 1-3s；SKR: 毫秒级到秒级（取决于历史集检索速度）",
+  "dqn10_fit": "SeaKR 与 DQN10 需求契合度较高，但有重要限制：SeaKR 依赖开源 LM（需访问隐层）且需要 GPU 本地部署，与 DQN10 当前 MCP+Claude API 架构不兼容；SKR 更轻量但判定精度不如 SeaKR。建议：参考 SeaKR 的不确定性重排序思想，结合 Rowen 的跨模型一致性方案（无需访问内部状态）作为替代实现。",
+
+  "domain_adaptability": "SeaKR: 强 — 不确定性估计机制与领域无关；SKR: 中等 — 需要领域内已标注的已知/未知问题集",
+  "incremental_update": "支持 — 检索库可增量更新；SeaKR 模型不需重训；SKR 需更新历史问题集",
+  "citation_traceability": "source-link — 可记录触发检索时使用的段落来源；重排序后的段落溯源更可靠",
+  "temporal_awareness": "static — 无时间感知",
+  "provenance_tracking": "source-link — 记录检索段落来源链接，未精确到声明级",
+  "memory_consolidation": "manual — 历史问题集（SKR）和检索库均需人工维护",
+
+  "benchmark_comparison": "SKR（2023）：在 InstructGPT/ChatGPT 上优于 CoT 和始终检索方法，具体数据见原论文表格（arXiv 2310.05002）。SeaKR（2024，EMNLP）：2WikiMultiHopQA F1 36.0（超基线 +6.0 个百分点）；HotpotQA F1 39.7（+5.5）；IIRC F1 23.5（+0.6）；全面优于现有自适应 RAG 方法（包括 SKR、Self-RAG 等）。",
+  "known_limitations": "SeaKR: 1. 严格依赖开源 LM 内部状态访问，不兼容闭源 API；2. k=20 采样有计算开销（vLLM 可并行缓解）；3. 小模型（3B 以下）隐层表征质量可能不足以准确反映不确定性。SKR: 1. 历史问题集覆盖范围限制判定能力；2. 对全新领域问题（超出历史集分布）的判定不准确；3. 外部标注集构建有人工成本。",
+  "integration_effort": "SeaKR: 高 — 需要本地部署带内部状态访问的开源 LM（如 Llama/Qwen）；与当前 Claude MCP 架构不兼容，需大幅改造。SKR: 低 — 仅需维护历史问题集并调整 prompt，可在现有 MCP 架构上实现。",
+
+  "uncertain": ["SKR具体benchmark数值"]
+}

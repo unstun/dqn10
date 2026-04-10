@@ -1,0 +1,36 @@
+{
+  "name": "RAGLens / SAE-based",
+  "category": "验证核查",
+  "source": "https://arxiv.org/abs/2512.08892",
+  "maturity": "research",
+
+  "architecture": "RAGLens 是轻量级 RAG 幻觉检测器，利用稀疏自编码器（Sparse Autoencoders, SAE）解缠 LLM 内部激活。核心流程：(1) 在 LLM 中间层提取内部激活（mid-layer activations）；(2) 用预训练 SAE 将激活分解为稀疏特征表示；(3) 使用基于信息的特征选择（Information-based Feature Selection）识别与 RAG 幻觉高度相关的特征；(4) 用广义加法模型（GAM, Generalized Additive Model）将 SAE 特征映射到幻觉预测分数；(5) 输出 token 级别的幻觉标注和可解释理由。关键发现：中间层 SAE 特征对 RAG 幻觉检测信息量最大；GAM 特别适合 SAE 特征到幻觉预测的映射。无需大规模标注训练，无需调用外部 LLM judge。",
+  "retrieval_trigger": "none（RAGLens 是后验检测工具，非检索系统）",
+  "verification_method": "sae-based（稀疏自编码器解缠 LLM 内部激活，区别于所有外部验证方法）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "LLM 内部激活（不依赖外部知识源）",
+  "retrieval_method": "none（基于模型内部状态，无检索）",
+  "hallucination_mitigation": "从 LLM 内部识别幻觉特征，提供 token 级别的可解释标注，使人工或自动审核可精确定位不可信输出；SAE 特征可用于后验缓解（post-hoc mitigation）",
+  "offline_capability": "full-local（完全基于 LLM 内部激活，无外部 API 依赖）",
+  "local_model_support": "支持（在 Llama2-7B/13B、Llama3、Qwen 上验证；需要模型内部激活访问权限，适合开源本地模型）",
+  "embedding_strategy": "none（不使用 embedding，基于内部激活分析）",
+
+  "setup_complexity": "high（需要访问 LLM 内部激活，仅适用于开源模型；需要预训练 SAE；GAM 训练需要少量标注样本）",
+  "token_cost": "不变（不消耗额外 LLM token；激活提取在推理时同步完成）",
+  "latency": "ms 级（激活提取与推理同步，GAM 推理极快）",
+  "dqn10_fit": "低至中等。核心限制：(1) 需要开源模型（无法用于 Claude API，因为无法访问内部激活）；(2) 需要预训练 SAE（当前仅有 Llama 等模型的公开 SAE）；(3) 对本地运行的 Llama/Qwen 等模型有价值，但 DQN10 主要使用 Claude API。价值场景：若 DQN10 引入本地开源 LLM 做辅助任务（如 memory-worker 用 Llama），可用 RAGLens 监控其输出质量。可解释性优势：SAE 特征可视化帮助理解幻觉来源，有科研价值。",
+
+  "domain_adaptability": "强（模型内部激活方法无领域约束）",
+  "incremental_update": "不涉及",
+  "citation_traceability": "claim-level（token 级别幻觉标注）",
+  "temporal_awareness": "static",
+  "provenance_tracking": "claim-level（可解释 SAE 特征提供 token 级别溯源）",
+  "memory_consolidation": "none",
+
+  "benchmark_comparison": "RAGTruth 和 Dolly 数据集，Llama2-7B 和 Llama2-13B backbone：AUC 超过 80%，显著优于基于 prompt 的方法、不确定性估计方法和其他内部表示方法。SAE 检测器在 Llama2/Llama3/Qwen 多个模型上一致优于 LLM 自身的 Chain-of-Thought 自判断。",
+  "known_limitations": "1. 仅适用于开源模型（需要内部激活访问），不支持 Claude/GPT 等闭源 API；2. 需要对应模型的预训练 SAE（当前覆盖 Llama 系列，其他模型需自训练）；3. SAE 训练本身需要计算资源和数据；4. 对强 LLM（如 Claude-3.5+）的幻觉检测效果未验证；5. 论文主要在英文基准测试，中文支持未知",
+  "integration_effort": "高。需要引入开源本地 LLM、安装预训练 SAE、实现激活提取管道。估计 3-5 天工作量。仅在引入本地 LLM 后才有实际价值，对当前 DQN10（主用 Claude API）不建议优先实施。",
+
+  "uncertain": []
+}

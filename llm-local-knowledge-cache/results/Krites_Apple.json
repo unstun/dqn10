@@ -1,0 +1,36 @@
+{
+  "name": "Krites (Apple)",
+  "category": "缓存工程",
+  "source": "https://arxiv.org/abs/2602.13165",
+  "maturity": "research",
+
+  "architecture": "Krites 是 Apple 提出的异步验证语义缓存系统，专为分层 LLM 架构（小模型快速响应 + 大模型高精度后备）设计。三层架构：(1) 强命中层（Strong-hit）——输入提示与静态缓存中的已验证答案相似度高于阈值，直接同步返回缓存响应，零额外延迟；(2) 灰区异步验证层（Grey-zone Async Verification）——相似度略低于阈值（灰区）时，不阻塞请求、立即返回当前最优响应，同时在后台异步调用 LLM Judge 判断缓存响应是否适用于该新提示；(3) 动态缓存写入层（Dynamic Cache Write）——LLM Judge 验证通过的灰区匹配被写入动态缓存，供未来语义相近的提示命中。核心创新：通过异步验证解耦命中判断与响应延迟，既保持关键路径低延迟，又渐进式扩大缓存覆盖范围。",
+  "retrieval_trigger": "none — Krites 是纯缓存系统，触发逻辑为相似度阈值判断，不涉及主动知识检索。",
+  "verification_method": "none — 验证机制针对缓存响应的适用性（LLM Judge 判断灰区匹配是否可接受），而非事实正确性验证；但 LLM Judge 本质是在做语义一致性检查。",
+  "cache_tier_strategy": "async-verified — Krites 的核心创新：强命中直返（同步）+ 灰区异步 LLM 验证 + 动态缓存写入，相比传统单层或双层方案，通过异步验证大幅提升缓存覆盖率而不牺牲响应延迟。",
+
+  "knowledge_source_types": "静态策划的已验证问答对（curated static cache）；不支持外部文档知识库",
+  "retrieval_method": "向量语义检索 — 输入 embedding 与静态缓存 embedding 进行相似度搜索；灰区阈值区间内启动异步 LLM Judge",
+  "hallucination_mitigation": "通过复用已策划验证（curated & verified）的答案，直接绕过 LLM 生成步骤，对高频已知问题实现零幻觉；灰区验证通过 LLM Judge 过滤不适合的缓存复用，防止语义相似但答案不同的问题引入错误响应。",
+  "offline_capability": "hybrid — 静态缓存和向量检索可本地运行；LLM Judge（灰区异步验证）依赖 LLM 调用（可配置本地或云端）",
+  "local_model_support": "支持 — LLM Judge 可配置使用本地 LLM；核心相似度检索完全本地化",
+  "embedding_strategy": "standard — 使用标准 embedding 进行相似度检索，论文未说明特定 embedding 模型",
+
+  "setup_complexity": "high — 需要：(1) 构建和维护静态策划验证答案集；(2) 实现异步 LLM Judge 验证流程；(3) 动态缓存写入机制；相比普通语义缓存复杂度显著更高",
+  "token_cost": "降低 — 强命中直接绕过 LLM，token 消耗为零；灰区验证使用轻量 LLM Judge（成本低于完整 LLM 推理）；覆盖率提升 136%-290% 意味着更多请求无需完整 LLM 处理",
+  "latency": "毫秒级（强命中）/ 正常延迟（灰区和未命中）— 强命中：仅向量检索延迟（<50ms）；灰区：异步验证不阻塞当前请求，用户无感知；未命中：正常 LLM 延迟",
+  "dqn10_fit": "契合度较高，但实现成本高。对 DQN10 的价值：(1) 可为高频 DQN 问题（算法定义/公式/经典结论）建立静态策划答案集，强命中直返；(2) 灰区异步验证适合 DQN10 中问法多样但答案相同的问题；(3) 异步验证避免了验证过程阻塞用户响应。主要门槛：需要构建和维护高质量静态答案集（人工成本），以及实现异步验证流程（工程成本）。对单人科研场景，实现复杂度偏高，建议参考设计思路结合简化实现。",
+
+  "domain_adaptability": "强 — 架构与领域无关；只需为 DQN/强化学习领域准备策划答案集",
+  "incremental_update": "支持 — 动态缓存层自动写入经验证的新问答对；静态层需人工策划和审核",
+  "citation_traceability": "none — 缓存系统不追踪来源",
+  "temporal_awareness": "static — 静态缓存层无时间感知；动态缓存层随使用渐进式扩展",
+  "provenance_tracking": "none — 无溯源功能",
+  "memory_consolidation": "auto-dedup — 动态缓存写入时通过相似度检索隐式实现去重",
+
+  "benchmark_comparison": "论文数据（基于 trace-driven 仿真）：对话式流量（conversational traffic）缓存覆盖率提升最高 2.9 倍（+190%）；搜索风格查询（search-style queries）提升最高 3.9 倍（+290%）；综合提升范围 136%-290%（对应原文描述的 '136%~290%'）。注：所有数据来自仿真实验，非真实生产部署数据。arXiv 2602.13165，2026 年提交。",
+  "known_limitations": "1. 所有 benchmark 数据来自仿真而非真实生产部署，实际效果存在不确定性；2. 静态策划答案集构建需要大量人工标注和验证工作；3. LLM Judge 异步验证增加系统复杂度和额外 LLM 调用成本；4. 灰区阈值区间的设定对性能影响敏感；5. 仅适用于存在高频重复查询的场景，低重复率场景收益有限。",
+  "integration_effort": "高 — 核心工程工作：(1) 为 DQN 领域构建静态策划 QA 集（1-2 周人工整理）；(2) 实现异步 LLM Judge 验证流程（1-2 周开发）；(3) 动态缓存写入逻辑（3-5 天）。总估计 3-5 周。",
+
+  "uncertain": ["论文仿真到实际生产的性能差距", "LLM Judge具体使用的模型规格"]
+}

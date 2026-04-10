@@ -1,0 +1,36 @@
+{
+  "name": "Bifrost",
+  "category": "缓存工程",
+  "source": "https://github.com/maximhq/bifrost",
+  "maturity": "early-stage",
+
+  "architecture": "Bifrost 是用 Go 编写的开源 AI 网关，提供统一的 OpenAI 兼容 API 接入 15+ LLM 提供商（OpenAI/Anthropic/AWS Bedrock/Google Vertex/Azure/Mistral/Ollama 等）。采用模块化分层架构：Core 层（提供商集成/请求路由）、Framework 层（配置/日志/向量存储数据持久化）、Transport 层（HTTP 网关/API 接口）、Plugin 系统（可扩展中间件）、Web UI（配置与监控仪表板）。双层缓存机制：精确哈希缓存（完全相同请求直返）+ 语义向量缓存（识别语义等价提示）。提供三种部署方式：HTTP Gateway（NPX/Docker 秒级启动）、Go SDK（库集成）、Drop-in 替换（仅改 URL）。",
+  "retrieval_trigger": "none — Bifrost 是 AI 网关而非 RAG 系统；'触发检索'对应缓存未命中时路由到 LLM 提供商，不涉及知识库检索。",
+  "verification_method": "none — 无事实验证机制；缓存命中基于哈希精确匹配或向量相似度，不验证响应的事实性。",
+  "cache_tier_strategy": "dual-layer — 第一层：精确哈希匹配（完全相同请求，O(1) 查找）；第二层：向量语义缓存（语义等价提示，向量相似度搜索）。精确层优先，未命中则查语义层，两层均未命中才调用 LLM。",
+
+  "knowledge_source_types": "缓存 LLM API 响应；作为网关可代理任何 LLM 提供商的请求；不直接管理外部知识库",
+  "retrieval_method": "精确哈希 + 向量语义检索双模式；向量存储后端由 Framework 层管理（具体向量数据库实现待确认）",
+  "hallucination_mitigation": "间接效果 — 复用缓存响应减少随机幻觉；主要价值是成本和延迟优化，非幻觉减少。语义缓存命中时返回之前验证过的响应，对高频相似问题提供一致性输出。",
+  "offline_capability": "hybrid — 本地 Ollama 作为 LLM 提供商时可离线运行；向量缓存可本地部署；云端 LLM 提供商需联网",
+  "local_model_support": "支持 — 内置 Ollama 提供商集成，支持本地 LLM；go 实现支持自定义提供商扩展",
+  "embedding_strategy": "standard — 语义缓存使用标准 embedding；具体 embedding 方案可通过插件配置",
+
+  "setup_complexity": "low — HTTP 网关模式：npx @maximhq/bifrost 或 Docker 一行命令启动；Drop-in 模式：仅改 API endpoint URL；Go SDK 模式需编写代码",
+  "token_cost": "降低 — 精确缓存命中：零 token 消耗；语义缓存命中：零 token 消耗；双层缓存最大化命中率；声称成本优化显著（具体数字取决于请求重复率）",
+  "latency": "微秒级（精确缓存命中）/ 毫秒级（语义缓存命中）/ 正常 LLM 延迟（未命中）— 官方压测：5000 RPS 下仅增加 11 微秒网关开销（t3.xlarge），100% 请求成功率；声称比 LiteLLM 快 50x",
+  "dqn10_fit": "契合度中等偏低。Bifrost 主要价值是企业级多提供商 LLM 网关，对 DQN10 单人科研场景偏重。具体评估：(1) 若 DQN10 需要同时使用多个 LLM 提供商（Claude + OpenAI + 本地 Ollama），Bifrost 网关可统一管理；(2) 双层缓存对高频 LLM 调用（如实验中的大量相似推理请求）有成本节省；(3) 对单人使用场景，引入网关层增加了不必要的系统复杂度；建议在 DQN10 实验 LLM 调用量显著增加时再考虑。",
+
+  "domain_adaptability": "强 — 作为通用 AI 网关，与领域无关",
+  "incremental_update": "支持 — 缓存自动增量写入；新 LLM 提供商通过插件扩展",
+  "citation_traceability": "none — 网关层不提供来源追踪",
+  "temporal_awareness": "static — 无时间感知；缓存内容随 TTL 过期",
+  "provenance_tracking": "none — 无溯源功能",
+  "memory_consolidation": "auto-dedup — 精确哈希天然去重；语义缓存通过相似度隐式去重",
+
+  "benchmark_comparison": "官方压测（t3.xlarge，5000 RPS）：网关额外延迟仅 11 微秒，100% 成功率；声称比 LiteLLM 快 50x（具体对比条件和测试方法论文未详细说明）。GitHub 活跃度：3794+ commits，持续开发中。无标准 QA benchmark 对比（工具定位是网关而非 RAG）。",
+  "known_limitations": "1. '50x 快于 LiteLLM' 的声明缺乏详细测试方法论，需独立验证；2. 作为早期开源项目，企业级支持依赖商业版本；3. 向量语义缓存后端的具体实现和性能待深入调研；4. 引入 Go 网关层增加运维复杂度；5. 对单人科研场景偏重，ROI 需评估。",
+  "integration_effort": "低 — HTTP Gateway 模式几乎零配置；如需语义缓存，额外配置向量存储约 1-3 天工作量。",
+
+  "uncertain": ["语义缓存向量后端的具体实现细节", "50x vs LiteLLM的详细测试条件", "向量缓存的假阳性率"]
+}

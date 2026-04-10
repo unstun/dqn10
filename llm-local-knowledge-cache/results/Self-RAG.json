@@ -1,0 +1,36 @@
+{
+  "name": "Self-RAG",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2310.11511",
+  "maturity": "research",
+
+  "architecture": "Self-RAG 训练单个语言模型，使其能够自主决定何时检索、如何利用检索结果并评估自身输出质量。系统由三个组件构成：生成器 LM（ℳ）、检索器（ℛ）和离线评判模型（𝒞）。评判模型利用 GPT-4 生成反思 token 的监督数据，再训练生成器在推理时内联输出四类特殊 token（Retrieve/IsRel/IsSup/IsUse），实现检索决策与质量评估的端到端一体化。推理时，模型并行处理多个候选段落，通过反思 token 自评后选取最优输出。",
+  "retrieval_trigger": "confidence-based — 模型通过生成 Retrieve token（yes/no/continue）主动决定是否触发检索，而非固定规则；触发后由 IsRel token 判断段落相关性，IsSup token 评估生成内容是否被段落支撑（fully/partially/no support），IsUse token 对输出整体质量打分（1-5 分），四类 token 协同控制检索深度与输出选择。",
+  "verification_method": "consistency-check — IsSup token 在生成阶段实时核查每段输出是否有段落级文献支撑，本质是基于检索证据的内联一致性验证；IsRel 验证段落与问题的相关性；IsUse 从整体效用角度评估最终回复质量。",
+  "cache_tier_strategy": "none — Self-RAG 不涉及缓存机制，专注于检索决策与自我评估。",
+
+  "knowledge_source_types": "大规模段落集合（默认 Contriever-MS MARCO 检索库）；特定任务中补充网络搜索结果；支持 PDF 型文献数据库（离线索引）",
+  "retrieval_method": "向量语义检索（Contriever-MS MARCO 密集检索器）",
+  "hallucination_mitigation": "通过 IsSup 反思 token 在生成过程中实时检测每个输出段是否有段落支撑，未支撑的段落被标记为 'no support' 并触发重生成或丢弃；IsUse token 从整体质量角度过滤低质量输出。整个机制无需外部验证器，幻觉抑制内嵌于语言模型自身的生成过程中。",
+  "offline_capability": "hybrid — 需要本地检索库（可离线索引），但评判模型训练依赖 GPT-4 生成监督数据；推理阶段可配置为仅使用本地段落集，无需在线 API",
+  "local_model_support": "支持 — Self-RAG 开源 7B/13B 模型可本地部署，检索器 Contriever 也可本地运行；不依赖商业 API 推理",
+  "embedding_strategy": "standard — 使用 Contriever-MS MARCO 标准密集向量检索",
+
+  "setup_complexity": "medium — 需要部署开源 LM（7B/13B）、配置 Contriever 检索器和段落索引，涉及模型微调或加载预训练 Self-RAG 权重；但代码和模型均已开源",
+  "token_cost": "增加 — 反思 token（Retrieve/IsRel/IsSup/IsUse）本身占用额外 token；并行处理多段落时输入 token 增加数倍；与始终检索 baseline 相比，自适应不检索可节省部分 token，整体成本视查询分布而定",
+  "latency": "秒级 — 检索器查询 + 多段落并行生成 + 反思 token 评估，单次查询通常 1-5 秒；并行候选段落数（默认 top-k）影响延迟",
+  "dqn10_fit": "契合度中等。Self-RAG 的自适应检索决策机制与 DQN10 '仅在需要时检索' 的设计目标高度吻合，可作为判定机制的参考范式。实际集成难点在于：(1) 需要本地部署 7B+ 开源 LM 作为生成器；(2) bigmemory/.pipeline/ 需转为 Contriever 可检索的段落索引；(3) MCP 工具链需要适配 Self-RAG 的特殊 token 生成逻辑。对单人科研场景，资源消耗偏高，建议作为架构参考而非直接部署。",
+
+  "domain_adaptability": "强 — 强化学习/DQN 相关文献可直接索引为段落集；反思 token 机制与领域无关，适用于专业领域 QA",
+  "incremental_update": "支持 — 检索库（段落索引）可增量添加新论文/实验记录，生成器模型无需重训；但新领域若显著偏离训练分布，反思 token 准确性可能下降",
+  "citation_traceability": "支持 — IsRel/IsSup token 标记了哪些段落被实际使用，可追溯到具体检索段落；但精度到段落级而非原子声明级",
+  "temporal_awareness": "static — 无内置时间戳机制；检索库更新频率决定知识时效性",
+  "provenance_tracking": "chunk-level — IsSup token 关联到具体段落（chunk），可追溯到段落级文献来源",
+  "memory_consolidation": "manual — 段落索引需人工维护和更新，无自动去重或合并机制",
+
+  "benchmark_comparison": "在 PopQA 上达到 54.9-55.8% 准确率（ChatGPT 仅 29.3%）；PubHealth 72.4-74.5%（超过 ChatGPT 70.1%）；ASQA Citation Precision 70.3%（ChatGPT 65.1%）；Biography FactScore 80.2-81.2（ChatGPT 71.8）。全面优于 retrieval-augmented Llama2-chat 和 Alpaca。arXiv ID: 2310.11511，ICLR 2024 发表。",
+  "known_limitations": "1. 评判模型训练依赖 GPT-4 生成监督数据，冷启动成本高；2. 推理时需要访问段落检索库，纯参数化推理不适用；3. 不同任务推理时权重调参（IsUse 评分权重）需要人工设定；4. 反思 token 机制对闭源 API（如 GPT-4）不可直接迁移，仅适用于可微调的开源模型；5. 多候选段落并行处理增加推理显存需求。",
+  "integration_effort": "高 — 需要本地 GPU 运行 7B/13B LM（约 16-40GB VRAM）；需要将 bigmemory/.pipeline/ 文档转换为 Contriever 兼容的段落索引；MCP 工具链需要新增 Self-RAG 推理接口。估计集成工作量：2-3 周。",
+
+  "uncertain": ["benchmark_comparison中部分细节", "integration_effort具体工作量估算"]
+}

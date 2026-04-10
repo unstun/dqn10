@@ -1,0 +1,36 @@
+{
+  "name": "Domain-Grounded Tiered Retrieval",
+  "category": "架构范式",
+  "source": "https://arxiv.org/abs/2603.17872",
+  "maturity": "research",
+
+  "architecture": "基于 LangGraph 实现的四阶段自调节检索框架，每阶段均可早退（Early-Exit）优化计算效率：(1) 内在验证（Intrinsic Verification）：LLM 自评是否已知答案，知则提前返回，未知则触发检索；(2) 领域探测（Domain Detection/Adaptive Search Routing）：使用 Domain Detector 识别查询所属领域，路由到特定领域档案库（subject-specific archives）而非通用检索；(3) 精细过滤（Refined Context Filtering, RCF）：消除无关或分散注意力的上下文信息，只保留核心证据；(4) 外在再生成（Extrinsic Regeneration）：基于过滤后证据重新生成答案，并附加原子声明级别的事实验证。",
+  "retrieval_trigger": "confidence-based（第一阶段内在验证：LLM 自评置信度，高置信直接返回，低置信触发后续阶段）",
+  "verification_method": "claim-decomposition（第四阶段：原子声明级别的外在验证）",
+  "cache_tier_strategy": "none（分层是检索流程分层，非缓存分层）",
+
+  "knowledge_source_types": "领域专属档案库（domain-specific archives）、通用知识库",
+  "retrieval_method": "混合（领域路由 + 语义检索 + 精细过滤）",
+  "hallucination_mitigation": "四阶段组合：早退避免不必要检索引入噪声→领域路由提高检索精准度→精细过滤消除干扰证据→外在再生成+验证确保输出一致性",
+  "offline_capability": "hybrid（LangGraph 框架本地可运行；领域档案库可本地构建；LLM 部分依赖模型选择）",
+  "local_model_support": "支持（LangGraph 框架与模型无关，可配置本地 LLM）",
+  "embedding_strategy": "standard（检索使用标准 embedding）",
+
+  "setup_complexity": "high（需要 LangGraph 编排、Domain Detector 训练/配置、领域档案库构建，整体工程量较大）",
+  "token_cost": "不变或降低（早退机制减少不必要的检索和生成；精细过滤减少上下文 token）",
+  "latency": "秒级（多阶段串行处理，早退优化最佳情况；完整四阶段约数秒）",
+  "dqn10_fit": "中等契合。四阶段框架的设计理念（领域路由 + 分层检索 + 精细过滤）对 DQN10 知识系统升级有参考价值。具体价值：(1) 领域探测思路可用于区分「实验配置查询」vs「论文检索查询」vs「代码问题查询」，路由到不同知识库（.pipeline/experiments/ vs .pipeline/literature/）；(2) 早退机制减少对 bigmemory 的无效检索。局限：(1) 2026 年论文，代码可获得性待确认；(2) 工程实现成本高；(3) Domain Detector 配置需要领域标注数据；(4) 对单人科研场景可能过于复杂。",
+
+  "domain_adaptability": "强（框架领域无关；DQN 领域适配关键在 Domain Detector 和档案库构建）",
+  "incremental_update": "支持（领域档案库可增量更新）",
+  "citation_traceability": "chunk-level（精细过滤阶段保留证据来源）",
+  "temporal_awareness": "static（无时序感知机制）",
+  "provenance_tracking": "chunk-level（第四阶段外在验证追踪到具体证据片段）",
+  "memory_consolidation": "none",
+
+  "benchmark_comparison": "650 条查询，5 个多样化基准测试：TimeQA v2 胜率 83.7%（最强）；MMLU Global Facts 胜率 78.0%；Groundedness 评分在 78.8%-86.4% 区间稳定。主要失败模式：False-Premise Overclaiming（错误前提的问题处理不当）。",
+  "known_limitations": "1. 持续失败模式：False-Premise Overclaiming（包含错误前提的问题导致系统过度断言）；2. 多阶段串行增加延迟；3. Domain Detector 训练需要标注数据；4. LangGraph 编排增加系统复杂度；5. 论文为 2026 年最新，代码可获得性待确认",
+  "integration_effort": "高。需要实现 LangGraph 流程、训练 Domain Detector、构建领域档案库，估计 1-2 周工作量。建议仅借鉴框架思路，不直接采用。",
+
+  "uncertain": ["integration_effort"]
+}

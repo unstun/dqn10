@@ -1,0 +1,165 @@
+# ============================================================
+#  字段定义 — LLM 本地知识缓存系统调研
+# ============================================================
+#  detail_level: brief(一句话) / detailed(段落) / extensive(多段+代码示例)
+#  uncertain 字段在 deep 阶段由 agent 自动填充,无法确认的标注 "uncertain"
+
+# --- 基本信息 ---
+basic:
+  - name: name
+    description: "方案/工具名称"
+    detail_level: brief
+
+  - name: category
+    description: "所属方向 (判定机制/缓存工程/MCP生态/验证核查/架构范式)"
+    detail_level: brief
+
+  - name: source
+    description: "论文/GitHub/产品页链接"
+    detail_level: brief
+
+  - name: maturity
+    description: "成熟度: research / early-stage / production-ready"
+    detail_level: brief
+
+# --- 核心机制 ---
+core_mechanism:
+  - name: architecture
+    description: "核心架构描述 — 系统如何工作的一段话"
+    detail_level: detailed
+
+  - name: retrieval_trigger
+    description: |
+      检索触发策略:
+      - always: 每次都检索
+      - confidence-based: 低置信度时检索 (FLARE/Rowen)
+      - self-knowledge: LLM 自评是否已知 (SKR/SeaKR)
+      - rl-learned: RL 学习的路由策略 (RouteRAG)
+      - none: 不涉及检索触发
+    detail_level: detailed
+
+  - name: verification_method
+    description: |
+      验证机制类型:
+      - claim-decomposition: 分解为原子声明逐条验证 (SAFE/AFEV/MiniCheck)
+      - consistency-check: 多次生成一致性检查 (SelfCheckGPT)
+      - retrieval-based: 检索外部证据验证 (CRAG)
+      - sae-based: 模型内部激活分析 (RAGLens)
+      - none: 无验证机制
+    detail_level: detailed
+
+  - name: cache_tier_strategy
+    description: |
+      缓存分层策略:
+      - single-tier: 单层语义缓存 (GPTCache)
+      - dual-layer: 精确哈希 + 向量相似 (Bifrost)
+      - three-tier: 强/部分/弱匹配分层 (Bedrock)
+      - async-verified: 灰区异步验证 (Krites)
+      - none: 不涉及缓存
+    detail_level: detailed
+
+# --- 技术特性 ---
+technical:
+  - name: knowledge_source_types
+    description: "支持的知识源类型 (PDF/代码/数据库/API/网页/知识图谱)"
+    detail_level: brief
+
+  - name: retrieval_method
+    description: "检索方法: 向量语义/BM25关键词/图谱遍历/混合"
+    detail_level: brief
+
+  - name: hallucination_mitigation
+    description: "该方案如何具体减少幻觉 — 机制描述"
+    detail_level: detailed
+
+  - name: offline_capability
+    description: "是否支持纯本地离线运行 (full-local / hybrid / cloud-only)"
+    detail_level: brief
+
+  - name: local_model_support
+    description: "是否支持本地模型运行验证/embedding,区分实际可部署性"
+    detail_level: brief
+
+  - name: embedding_strategy
+    description: |
+      向量化策略:
+      - standard: 标准 embedding
+      - contextual: chunk 前加上下文描述 (Anthropic Contextual Retrieval)
+      - hybrid-sparse-dense: 稀疏+稠密混合
+    detail_level: brief
+
+# --- 实用性评估 ---
+practicality:
+  - name: setup_complexity
+    description: "部署复杂度: low / medium / high — 对单人科研场景"
+    detail_level: brief
+
+  - name: token_cost
+    description: "对 LLM token 消耗的影响 (降低/不变/增加,量化百分比如有)"
+    detail_level: brief
+
+  - name: latency
+    description: "检索/验证延迟 (ms 级/秒级/分钟级)"
+    detail_level: brief
+
+  - name: dqn10_fit
+    description: |
+      与 DQN10 项目需求的契合度:
+      - 能否集成到现有 MCP 工具链?
+      - 能否利用 bigmemory/.pipeline/ 已有数据?
+      - 对单人科研工作流的实际价值?
+    detail_level: detailed
+
+# --- 科研适配 ---
+research_fit:
+  - name: domain_adaptability
+    description: "能否适配特定研究领域 (强化学习/DQN) — 泛化性评估"
+    detail_level: brief
+
+  - name: incremental_update
+    description: "是否支持增量更新知识库 (新论文/新实验结果/新配置)"
+    detail_level: brief
+
+  - name: citation_traceability
+    description: "能否追溯到原始文献/数据源 — 学术可信度基础"
+    detail_level: brief
+
+  - name: temporal_awareness
+    description: |
+      知识时间维度:
+      - static: 无时间感知
+      - temporal-versioned: 每条知识带时间戳 (Zep/Graphiti)
+      - decay-weighted: 旧知识权重衰减
+    detail_level: brief
+
+  - name: provenance_tracking
+    description: |
+      溯源粒度:
+      - none: 无溯源
+      - source-link: 链接到原始文档
+      - chunk-level: 精确到文档片段
+      - claim-level: 精确到原子声明
+    detail_level: brief
+
+  - name: memory_consolidation
+    description: |
+      记忆整合机制 — 长期使用后知识库膨胀的应对:
+      - manual: 人工维护
+      - auto-dedup: 自动去重
+      - llm-merge: LLM 辅助合并 (Mem0)
+      - graph-based: 知识图谱自动整合
+    detail_level: brief
+
+# --- 不确定字段 (deep 阶段自动填充) ---
+uncertain:
+  - name: benchmark_comparison
+    description: "与同类方案的定量对比 (如有公开 benchmark)"
+    detail_level: extensive
+
+  - name: known_limitations
+    description: "已知局限性和失败模式"
+    detail_level: detailed
+
+  - name: integration_effort
+    description: "集成到 DQN10 现有架构的具体工作量估算"
+    detail_level: detailed

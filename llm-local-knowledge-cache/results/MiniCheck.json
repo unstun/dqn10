@@ -1,0 +1,36 @@
+{
+  "name": "MiniCheck",
+  "category": "验证核查",
+  "source": "https://arxiv.org/abs/2404.10774",
+  "maturity": "production-ready",
+
+  "architecture": "MiniCheck 是轻量级事实核查模型（最佳版本 MiniCheck-FT5，770M 参数，基于 Flan-T5）。训练方法：使用 GPT-4 构建合成训练数据——通过结构化生成程序创建真实但具有挑战性的事实错误实例，涵盖 RAG 生成、摘要、文档对话等场景。统一基准：构建 LLM-AggreFact 基准，整合来自事实核查和 LLM 生成溯源研究的多个数据集。核查粒度：模型可检查声明中的每个事实，并识别跨句子信息综合中的错误。发表于 EMNLP 2024。",
+  "retrieval_trigger": "none（MiniCheck 是验证模型，非检索系统）",
+  "verification_method": "claim-decomposition（检查声明中的每个事实，逐条核验）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "文档文本（作为事实核查的参考来源）",
+  "retrieval_method": "none（MiniCheck 是判别模型，输入为声明+参考文档，直接输出事实一致性评分）",
+  "hallucination_mitigation": "在知识写入前作为质量门控：给定声明和参考文档，MiniCheck 判断声明是否被文档支持，拦截不一致的事实写入知识库；770M 参数本地可运行，实现低成本高频率核查",
+  "offline_capability": "full-local（770M 参数模型可本地部署，无 API 依赖）",
+  "local_model_support": "支持（MiniCheck-FT5 770M 参数，单 GPU 可运行）",
+  "embedding_strategy": "none（判别模型，非向量检索系统）",
+
+  "setup_complexity": "low（HuggingFace 上公开发布，pip install 后下载模型即用）",
+  "token_cost": "不变（本地模型推理，不消耗 LLM API token）",
+  "latency": "ms 级（770M 参数推理，GPU 上约 10-50ms/样本）",
+  "dqn10_fit": "高价值，适合用作知识写入前的质量门控。具体场景：(1) /archive 归档前对 memory-worker 提取的关键事实做自动核查，拦截幻觉信息写入 bigmemory；(2) 论文摘要写入 .pipeline/literature/ 前验证与原文一致性；(3) 实验结果记录前核查与代码输出的一致性。核心优势：400x 成本优势意味着可以对每条归档事实做核查而不增加显著成本；770M 参数 Mac M 系列芯片可运行。局限：需要参考文档作为核查基准（无参考文档时无法核查）。",
+
+  "domain_adaptability": "强（模型训练覆盖多领域事实核查；对 DQN 实验结果记录的核查需要提供实验日志作为参考）",
+  "incremental_update": "不涉及（MiniCheck 是推理时工具，非知识库）",
+  "citation_traceability": "claim-level（输出精确到哪条事实不被支持）",
+  "temporal_awareness": "static（模型本身无时间感知）",
+  "provenance_tracking": "claim-level（可精确指出哪条声明不被参考文档支持）",
+  "memory_consolidation": "none（非知识管理系统）",
+
+  "benchmark_comparison": "LLM-AggreFact 基准：MiniCheck-FT5（770M）达到 GPT-4 级别精度，超过所有同等规模系统。成本降低 400x（相比 GPT-4 API 调用）。EMNLP 2024 发表，模型、数据和代码均已开源。",
+  "known_limitations": "1. 需要参考文档作为事实核查基准，无参考文档时无法工作；2. 跨句子长距离推理能力有限；3. 对领域专业术语（如强化学习超参数的合理范围判断）可能不如 GPT-4 准确；4. 不支持中文事实核查（训练数据以英文为主）",
+  "integration_effort": "低。集成方案：在 /archive 流程中调用 MiniCheck 对待归档事实做批量核查；约 0.5-1 天实现归档钩子集成。",
+
+  "uncertain": []
+}

@@ -1,0 +1,36 @@
+{
+  "name": "CRAG (Corrective RAG)",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2401.15884",
+  "maturity": "research",
+
+  "architecture": "CRAG 在标准 RAG 管线后插入三级纠错模块：(1) 检索评估器——基于 T5 微调的轻量模型（0.77B 参数），对每个「问题-文档」对打置信度分；(2) 动作触发器——依据分数阈值选择三种动作：高置信 Correct（精炼文档）、低置信 Incorrect（丢弃，改用网络搜索）、中间 Ambiguous（结合两者）；(3) 知识精炼算法——分解-重组算法将文档切分为条带（strip），逐条评估相关性后重组，去除无关段落噪声。网络搜索路径通过 ChatGPT 重写查询、调用 Google API，优先纳入 Wikipedia 结果后同样经过精炼算法处理。",
+  "retrieval_trigger": "confidence-based — 检索评估器的置信度分数驱动触发逻辑：高于上阈值进行精炼式使用，低于下阈值触发网络搜索替代，介于两者之间则混合两路结果。",
+  "verification_method": "retrieval-based — 检索评估器在事实上是一个相关性验证器，对检索结果进行可靠性评分后决定是否接受；分解-重组算法进一步在段落内部做细粒度可靠性过滤。",
+  "cache_tier_strategy": "none — CRAG 专注于检索纠错而非缓存。",
+
+  "knowledge_source_types": "本地检索库（论文实验中用 Wikipedia）+ 网络实时搜索（Google API）；低置信时自动切换到网络来源",
+  "retrieval_method": "向量语义检索（本地库）+ 网络关键词检索（Google API）混合；精炼后使用相关性评估器二次过滤",
+  "hallucination_mitigation": "核心机制：不使用低置信检索结果（宁可丢弃再搜索），避免低质量上下文引导模型产生错误事实；分解-重组算法去除文档内无关条带，防止无关信息污染生成。评估器在 PopQA 上准确率 84.3%，远超 ChatGPT 评估基线（58-64.7%），保证纠错决策本身的可靠性。",
+  "offline_capability": "hybrid — 本地检索路径可离线运行；Incorrect 触发时需要在线 Google API；Ambiguous 路径两者兼用",
+  "local_model_support": "支持 — T5-based 评估器可本地部署；生成器可换用本地 LLM；但网络搜索路径依赖外部 API",
+  "embedding_strategy": "standard — 使用标准向量检索；评估器使用 T5 分类而非 embedding 相似度",
+
+  "setup_complexity": "medium — 需要微调 T5 评估器（论文提供 PopQA 微调权重）、配置 Google API、搭建本地检索库；三级动作逻辑实现中等复杂度",
+  "token_cost": "增加 — 分解-重组步骤需要额外 LLM 调用进行条带相关性评估；Ambiguous 路径双路检索增加上下文 token；但精炼后的上下文比原始文档更精简，生成阶段 token 可能减少",
+  "latency": "秒级 — 本地评估器 <500ms；精炼算法逐条带评估增加 1-3 秒；网络搜索路径额外增加 1-5 秒；总延迟 2-10 秒",
+  "dqn10_fit": "契合度中等。CRAG 的核心价值在于'不相信低质量检索结果'，适合 DQN10 场景中处理过时或无关的论文检索结果。可将 T5 评估器替换为对强化学习文献相关性评分的轻量分类器。网络搜索路径与 MCP 的 WebSearch 工具可直接对接。主要限制：网络搜索触发路径增加延迟且依赖外部 API；评估器需要领域标注数据微调。",
+
+  "domain_adaptability": "中等 — 评估器在 PopQA 上微调，迁移到强化学习领域需要新的标注数据；精炼算法与领域无关",
+  "incremental_update": "支持 — 本地检索库可增量更新；评估器定期重训以适应新领域文献",
+  "citation_traceability": "chunk-level — 分解-重组算法精确到文档条带级别，可追溯哪些条带被保留使用",
+  "temporal_awareness": "static — 无时间感知；网络搜索路径天然获取最新信息",
+  "provenance_tracking": "chunk-level — 精炼算法保留了具体使用的段落条带，可追溯到子文档级别",
+  "memory_consolidation": "manual — 无自动整合机制",
+
+  "benchmark_comparison": "与 RAG baseline 相比：PopQA +7.0%，Biography +14.9%，PubHealth +36.6%，Arc-Challenge +15.4%。与 Self-RAG 集成（Self-CRAG）：PopQA +6.9%，Biography +5.0%，PubHealth +2.4%。评估器准确率 84.3% vs ChatGPT 基线 58-64.7%。ICLR 2024 发表。",
+  "known_limitations": "1. 评估器需要外部微调训练，无法完全端到端；2. 网络搜索路径依赖 Google API，存在成本和速率限制；3. 精炼算法分解-重组步骤增加额外 LLM 调用成本；4. 作者明确指出未来工作方向是'消除外部评估器，让 LLM 自身具备检索评估能力'；5. Ambiguous 阈值区间的设定对性能敏感，需要任务级调参。",
+  "integration_effort": "中等 — 评估器微调需要领域标注数据准备（1-2 周）；精炼算法逻辑实现约 3-5 天；与 MCP WebSearch 对接 1 天。估计总工作量：2-3 周。",
+
+  "uncertain": []
+}

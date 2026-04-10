@@ -1,0 +1,36 @@
+{
+  "name": "Adaptive RAG",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2403.14403",
+  "maturity": "research",
+
+  "architecture": "Adaptive-RAG 在标准 RAG 管线前插入一个轻量查询复杂度分类器（T5-Large，770M 参数），将输入查询路由到三类策略：(A) 无检索（参数化直接回答）、(B) 单步检索（one-shot RAG）、(C) 多步迭代检索（iterative RAG）。分类器通过自动化标注生成训练标签——对各策略实际运行结果和数据集归纳偏差（单跳/多跳）进行采样，共使用 6 个数据集各 400 条查询训练。推理时分类器仅增加极小额外延迟（<100ms），而多步迭代策略平均耗时 27 秒，无检索仅 0.35 秒，路由节省显著。",
+  "retrieval_trigger": "rl-learned — 通过训练得到的 T5-Large 分类器根据查询复杂度（单跳/多跳/无需检索）动态路由，等价于学习得到的策略；非固定规则，而是从数据中习得的判定函数。",
+  "verification_method": "none — Adaptive-RAG 本身不含验证机制，专注于检索策略的路由决策；验证质量依赖下游 RAG 系统。",
+  "cache_tier_strategy": "none — 不涉及缓存机制。",
+
+  "knowledge_source_types": "开放域问答语料库（Wikipedia 等），复用下游 RAG 系统的知识源；知识源类型由路由后的具体 RAG 策略决定",
+  "retrieval_method": "复用下游检索器（论文实验中使用 BM25 和稠密检索），分类器本身不直接检索",
+  "hallucination_mitigation": "通过避免对简单查询进行不必要的检索（减少知识冲突来源），并对复杂查询启用多步迭代检索（提升事实覆盖度），间接降低幻觉率。核心贡献是'用对策略'而非引入新的验证机制。",
+  "offline_capability": "hybrid — 分类器可本地运行（T5-Large 开源），下游 RAG 系统的离线能力取决于具体配置",
+  "local_model_support": "支持 — T5-Large 分类器完全开源可本地部署；下游 LM 支持 FLAN-T5 等开源模型",
+  "embedding_strategy": "standard — 分类器使用标准文本分类，不涉及 embedding；下游检索策略根据配置而定",
+
+  "setup_complexity": "low — 仅需部署 T5-Large 分类器（约 3GB），接入已有 RAG 管线；GitHub 代码已开源（starsuzi/Adaptive-RAG）",
+  "token_cost": "降低 — 对简单查询路由到无检索策略，节省检索 + 上下文 token；对复杂查询使用多步迭代，质量更高但成本也更高；整体 token 消耗低于始终多步检索策略",
+  "latency": "秒级 — 分类器延迟 <100ms 可忽略；端到端延迟由路由策略决定：无检索 0.35s，单步 3.08s，多步 27.18s",
+  "dqn10_fit": "契合度较高。T5-Large 分类器可以学习识别 DQN/强化学习领域的查询复杂度：简单定义类查询无检索直答，多跳推理类查询触发迭代检索。集成到 MCP 工具链较简单，仅需在现有 RAG 调用前插入分类路由层。bigmemory/.pipeline/ 数据可作为分类器的领域适配训练集（少量标注即可）。对单人科研工作流的主要价值：大幅节省在简单查询上的检索开销。",
+
+  "domain_adaptability": "强 — 分类器可在少量领域数据上微调，适配强化学习/DQN 专域查询复杂度分布",
+  "incremental_update": "支持 — 知识库更新由下游 RAG 系统处理；分类器可在新领域数据上增量微调",
+  "citation_traceability": "source-link — 依赖下游 RAG 系统的溯源能力；分类器本身不提供溯源",
+  "temporal_awareness": "static — 无时间感知；知识时效性由下游检索库决定",
+  "provenance_tracking": "source-link — 溯源能力由下游 RAG 系统决定",
+  "memory_consolidation": "manual — 分类器和检索库均需人工维护",
+
+  "benchmark_comparison": "NAACL 2024 发表。在 FLAN-T5-XL backbone 下：单跳数据集 F1 38.3-60.7，多跳数据集（HotpotQA/MuSiQue/2WikiMQA）F1 31.8-53.82；GPT-3.5 backbone 多跳 F1 32.6-60.09。相比始终多步检索策略，效率显著提升（平均查询时间从 27s 降至自适应均值），准确率持平或略优。",
+  "known_limitations": "1. 自动标注可能产生错误标签，作者建议未来使用人工标注复杂度数据集；2. 分类器仅使用 400 条/数据集训练，领域迁移能力有限；3. 三类策略的粒度较粗，无法处理介于单步和多步之间的复杂度；4. 下游 RAG 系统质量对整体效果影响显著，分类器本身无法弥补检索器或生成器的不足。",
+  "integration_effort": "低 — T5-Large 分类器接入现有 RAG 管线约需 1-2 天工作量；主要工作是准备领域适配训练数据（如从 bigmemory 中采样标注复杂度标签）。",
+
+  "uncertain": []
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Microsoft GraphRAG",
+  "category": "架构范式",
+  "source": "https://github.com/microsoft/graphrag",
+  "maturity": "production-ready",
+
+  "architecture": "GraphRAG 是模块化图谱增强 RAG 系统，核心为从非结构化文本自动提取结构化知识图谱。数据管道：(1) 文本摄入→实体/关系提取（LLM 驱动）→知识图谱构建；(2) 社区检测（层次聚类算法，如 Leiden 算法）识别图谱中的实体社区；(3) 分层摘要生成（从叶节点到根节点逐层生成摘要）。检索模式：Local Search（子图遍历，精确问题）和 Global Search（社区摘要层次遍历，宏观问题）。溯源：知识图谱节点携带来源文档和 chunk 引用，支持完整溯源链。技术栈：Python（88%），88 万行代码，32.1k GitHub stars，v3.0.8（2026年3月），支持 Azure OpenAI 和 OpenAI 模型。",
+  "retrieval_trigger": "always（Local/Global Search 按需触发，由 Agent 选择）",
+  "verification_method": "retrieval-based（知识图谱结构化存储提供间接事实锚定）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "非结构化文本文档（PDF/Markdown/网页/代码注释均可）",
+  "retrieval_method": "图谱遍历（Local Search：子图查询；Global Search：社区摘要层次遍历）",
+  "hallucination_mitigation": "知识图谱结构化存储替代原始文本检索，实体关系明确减少歧义；分层摘要减少 LLM 需要推理的原始文本量；完整溯源链支持人工事后核查",
+  "offline_capability": "hybrid（框架开源本地可运行；但当前主要文档和测试基于 Azure OpenAI/OpenAI API；本地 LLM 支持需要额外配置）",
+  "local_model_support": "部分支持（GitHub 有 Ollama/本地 LLM 集成 issue 和 PR，但非一级支持；实体提取需要强模型）",
+  "embedding_strategy": "standard（实体和社区摘要使用标准 embedding 做向量检索辅助）",
+
+  "setup_complexity": "high（graphrag init → graphrag index 流程；提示调优（Prompt Tuning）强烈建议；索引构建对大型语料库需数小时；Azure OpenAI 部署或本地 LLM 配置均有学习曲线）",
+  "token_cost": "增加 3-5x（实体/关系提取、社区摘要生成消耗大量 LLM token；官方警告需仔细评估成本；小数据集先验估算）",
+  "latency": "索引构建：分钟至小时级；查询：秒级（Local Search 快于 Global Search）",
+  "dqn10_fit": "中等契合，成本是主要障碍。优势：(1) 从 DQN10 论文/实验日志提取知识图谱，自动识别算法关系（DQN→Double DQN→Dueling DQN 等演进关系）；(2) 社区层次检测可聚类相关实验；(3) 强溯源能力满足学术可信度要求；(4) 32.1k stars，微软背书，维护有保障。局限：(1) 索引构建成本 3-5x 基线 RAG，对单人科研场景昂贵；(2) 需要 Azure OpenAI 或 OpenAI API（本地 LLM 支持不稳定）；(3) 实体提取质量对小语料库（百篇论文）是否足够有待验证；(4) 复杂配置不适合快速迭代的研究工作流。建议：在 DQN10 论文调研阶段（数百篇论文）考虑一次性构建，不用于日常 bigmemory 管理。",
+
+  "domain_adaptability": "强（支持任意非结构化文本；DQN 领域实体提取需要专门调优 Prompt）",
+  "incremental_update": "部分支持（v3.0 增加了增量索引能力，但完整重建仍是更稳定的方案）",
+  "citation_traceability": "chunk-level（知识图谱节点携带来源文档和 chunk 引用，溯源能力是核心优势）",
+  "temporal_awareness": "static（无时序有效期管理，图谱节点静态存储）",
+  "provenance_tracking": "chunk-level（知识图谱每个节点/边精确追溯到源文档 chunk）",
+  "memory_consolidation": "graph-based（知识图谱自动合并相关实体，社区检测聚类相关知识）",
+
+  "benchmark_comparison": "Microsoft 内部基准（社区问答和全局理解任务）：GraphRAG 在需要全局理解的问题上显著优于朴素 RAG（特别是「整体性」和「多样性」维度）；Local Search 模式在精确问题上与 RAG 相当；成本 3-5x 基线 RAG。32.1k GitHub stars，广泛社区使用。v3.0.8（2026年3月）持续更新。",
+  "known_limitations": "1. 索引成本 3-5x 基线 RAG，对大语料库昂贵；2. 本地 LLM 支持不稳定（主要面向 Azure OpenAI/OpenAI）；3. Prompt Tuning 步骤不可跳过，增加上手成本；4. 静态知识图谱，增量更新复杂；5. 实体提取对专业领域（如 RL 数学符号）可能提取质量不稳定；6. False-Premise 问题处理能力有限（与 Domain-Grounded 方案类似局限）",
+  "integration_effort": "高。工程量估计：(1) 安装配置和 Prompt Tuning（1-2 天）；(2) 从 .pipeline/literature/ 论文库构建初始图谱（视语料量，约 1-2 天 + API 费用）；(3) 集成到检索工作流（1 天）；总计约 4-5 天。建议作为一次性调研工具使用，不用于日常知识管理。",
+
+  "uncertain": []
+}

@@ -1,0 +1,36 @@
+{
+  "name": "FLARE",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2305.06983",
+  "maturity": "research",
+
+  "architecture": "FLARE（Forward-Looking Active REtrieval）是主动检索的早期代表性工作。核心思路：生成长文本时，模型先临时生成下一句话（前瞻预测），若该句中任意 token 的概率低于阈值 θ（StrategyQA 用 0.4，其余用 0.8），则以该临时句为查询触发检索，用检索结果重新生成该句。存在两个变体：FLARE-direct（直接用临时句作检索查询）和 FLARE-instruct（指令 LM 生成隐式检索查询）。整体是一个迭代检索-生成循环，直到生成完整输出。",
+  "retrieval_trigger": "confidence-based — 以 token 级概率为置信度信号：若临时生成句中任意 token 概率 p < θ，触发检索（θ 值因任务调参，0.4-0.8）；高置信度则直接接受临时句继续生成，无需检索。",
+  "verification_method": "none — FLARE 本身无显式验证机制；置信度阈值是代理指标，不等于真实的事实验证；检索后直接重新生成，未核验检索结果可靠性。",
+  "cache_tier_strategy": "none — 不涉及缓存机制。",
+
+  "knowledge_source_types": "Wikipedia 段落集（论文实验主要用 DPR 检索 Wikipedia）；原则上支持任何可以向量化的文本知识库",
+  "retrieval_method": "向量语义检索（论文使用 BM25 和 DPR），前瞻句直接作为检索查询",
+  "hallucination_mitigation": "检测低置信度 token 作为模型不确定性的代理信号，在生成低置信段落时主动引入外部知识修正，避免模型在不确定时'胡乱生成'高概率但错误的词。相比始终检索，减少了高置信区段引入无关上下文导致的间接幻觉。",
+  "offline_capability": "full-local — 所有组件（LM + 检索库 + 检索器）均可本地部署，无需在线 API",
+  "local_model_support": "支持 — 论文使用 GPT-3.5-turbo-instruct，但机制本身兼容任何可输出 token 概率的语言模型（包括开源 LM）",
+  "embedding_strategy": "standard — 使用标准 BM25 或 DPR 向量检索，前瞻句作为自然语言查询直接检索",
+
+  "setup_complexity": "medium — 需要获取 token 级概率输出（某些闭源 API 不支持）、配置检索库和检索器、实现迭代生成循环；代码已开源（jzbjyb/FLARE）",
+  "token_cost": "增加 — 每次触发检索都生成一次临时句（额外 token），检索后重新生成该段落（重复消耗），多轮迭代累积成本显著高于单次检索",
+  "latency": "秒级 — 每次前瞻预测 + 检索 + 重生成约 1-3 秒；长文本生成中可能触发多次检索，总延迟随文本长度和触发频率线性增长，分钟级长文本任务延迟显著",
+  "dqn10_fit": "契合度中等偏低。FLARE 的置信度触发机制理论上适合 DQN10 的'不确定时才检索'需求，但实际集成有以下障碍：(1) 需要 token 级概率输出，Claude API 不提供该接口；(2) 论文验证场景是长文本生成（WikiAsp/ASQA），与 DQN10 的短 QA 场景匹配度有限；(3) 迭代生成-检索-重生成的循环实现复杂度较高。建议参考其核心思想（前瞻+置信度触发）而非直接集成。",
+
+  "domain_adaptability": "强 — 触发机制与领域无关，只要 LM 能输出 token 概率；领域知识存入检索库即可适配",
+  "incremental_update": "支持 — 检索库可增量更新，无需重训 LM",
+  "citation_traceability": "source-link — 检索时可记录使用的段落来源，但原始实现未强制要求引用追踪",
+  "temporal_awareness": "static — 无时间感知，依赖检索库的更新频率",
+  "provenance_tracking": "source-link — 可记录每次检索使用的段落链接，但未精确到 chunk 级",
+  "memory_consolidation": "manual — 检索库需人工维护",
+
+  "benchmark_comparison": "EMNLP 2023 发表。主要结果：2WikiMultiHopQA EM 51.0（单次检索 39.4，无检索 28.2）；StrategyQA EM 77.3（单次检索 68.6）；ASQA EM 41.3，ROUGE-L 34.3；WikiAsp UniEval 53.4，ROUGE-L 27.6。在 4 个长文本知识密集型任务上全面优于或持平于被动检索 baseline。",
+  "known_limitations": "1. 依赖 token 级概率输出，闭源 API（如 GPT-4、Claude）通常不提供该接口，限制了实际应用范围；2. 前瞻句的质量决定检索查询质量，若临时句生成偏差则检索结果也偏差（错误传播）；3. 置信度阈值 θ 对性能敏感，不同任务需要单独调参；4. 重复生成同一段落增加 token 成本，不适合 token 预算严格的场景；5. 最初面向长文本生成场景设计，对短 QA 任务的适配性有限。",
+  "integration_effort": "高 — 主要障碍是 Claude API 不提供 token 概率；需要切换到支持概率输出的本地模型（如 Llama）或使用 logprobs 接口的 OpenAI API。若使用开源 LM 本地部署，工作量约 2-4 周。",
+
+  "uncertain": ["token概率接口在当前MCP工具链中的可行性"]
+}

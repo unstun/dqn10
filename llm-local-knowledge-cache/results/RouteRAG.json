@@ -1,0 +1,36 @@
+{
+  "name": "RouteRAG",
+  "category": "判定机制",
+  "source": "https://arxiv.org/abs/2512.09487",
+  "maturity": "research",
+
+  "architecture": "RouteRAG 将 RAG 重新定义为一个马尔可夫决策过程，用强化学习端到端学习统一的检索路由策略。系统以 Qwen2.5-3B/7B-Instruct 为 backbone，通过两阶段 RL 训练：(1) 第一阶段仅优化回答准确率（EM 奖励）；(2) 第二阶段加入检索效率奖励（R_efficiency = (t_avg - t)/T，惩罚超出平均检索次数的轨迹），平衡准确率与检索成本。模型在生成时自主选择四类动作：推理（内部推理步骤）、文本检索（`<search>` + `[passage]`）、图谱检索（`<search>` + `[graph]`）、输出答案（`<answer>`）。图谱检索使用 HippoRAG 2 构建的知识图谱，文本检索使用标准稠密检索器。",
+  "retrieval_trigger": "rl-learned — 通过强化学习端到端习得路由策略，模型学习在何时推理、何时检索文本、何时检索图谱、何时给出答案；策略由任务奖励和效率奖励共同塑造，而非人工设计的启发式规则。",
+  "verification_method": "none — RouteRAG 不含显式事实验证步骤；检索结果直接注入生成上下文，依赖 RL 训练学习利用可靠证据。",
+  "cache_tier_strategy": "none — 不涉及缓存机制。",
+
+  "knowledge_source_types": "非结构化文本（段落检索）+ 结构化知识图谱（HippoRAG 2 构建），是目前少数同时支持文本和图谱两类知识源的自适应 RAG 方法",
+  "retrieval_method": "混合 — 文本检索（稠密向量检索）+ 图谱遍历（HippoRAG 2），RL 策略动态选择使用哪种检索方式",
+  "hallucination_mitigation": "RL 训练使模型学习在知识不足时才检索（避免检索过少导致的幻觉），同时通过效率奖励防止过度检索引入噪声；图谱检索对多跳推理提供更结构化的事实支撑，减少复杂推理链中的幻觉累积。",
+  "offline_capability": "full-local — 所有组件（Qwen2.5 LM + 文本检索器 + HippoRAG 2 图谱）可本地部署",
+  "local_model_support": "支持 — 基于开源 Qwen2.5-3B/7B-Instruct，完全可本地部署；图谱构建使用 HippoRAG 2（开源）",
+  "embedding_strategy": "standard — 文本检索使用标准稠密向量；图谱检索基于实体关系结构",
+
+  "setup_complexity": "high — 需要：(1) 构建 HippoRAG 2 知识图谱（计算密集）；(2) RL 训练流程（两阶段，10k HotpotQA 查询）；(3) 部署 Qwen2.5 开源模型。端到端从零构建工作量大，但可复用预训练的 RouteRAG 权重",
+  "token_cost": "降低（相对始终检索） — RL 训练的效率奖励促使模型减少不必要检索；与始终多步检索相比，检索次数更少；但比无检索 baseline 多消耗图谱/文本检索的上下文 token",
+  "latency": "秒级 — 文本检索约 500ms-1s；图谱检索取决于图谱规模，通常 1-5s；多步推理累积延迟较高",
+  "dqn10_fit": "契合度中等。RouteRAG 的文本+图谱双路检索思路对 DQN10 有参考价值（bigmemory 可作为文本库，.pipeline/ 知识图谱可作为图谱库），但实际集成障碍较大：(1) 需要重新在 DQN 领域数据上做 RL 训练；(2) HippoRAG 2 图谱构建需要大量计算；(3) 依赖开源 LM 而非当前 Claude MCP 架构。建议参考其双路检索架构设计，实现层面选择更轻量方案。",
+
+  "domain_adaptability": "中等 — RL 训练在 HotpotQA 上完成，迁移到强化学习/DQN 领域需要重新收集领域训练数据并重训路由策略",
+  "incremental_update": "有限 — 图谱需要重构（代价高）；文本检索库可增量更新；RL 策略需定期重训以适应新数据分布",
+  "citation_traceability": "source-link — 检索动作可记录使用的文本段落或图谱实体来源",
+  "temporal_awareness": "static — 无时间感知；知识时效性依赖检索库和图谱的更新频率",
+  "provenance_tracking": "source-link — 记录检索动作关联的来源（段落链接或图谱节点），未精确到声明级",
+  "memory_consolidation": "manual — 图谱和文本库均需人工维护，图谱更新代价尤其高",
+
+  "benchmark_comparison": "RouteRAG-7B 在 5 个 QA 数据集上的 F1：PopQA 56.4，NaturalQuestions 60.4，HotpotQA 72.5，2WikiMultiHopQA 64.6，MuSiQue 49.3，平均 60.6。比 Search-R1（前 RL-based 最优方法）提升约 +7.7 F1，且仅使用 17 倍更少的训练数据。论文于 2024 年 12 月提交 arXiv（2512.09487）。",
+  "known_limitations": "1. 仅在 3B/7B 模型上验证，更大模型的行为未知；2. 图谱检索仅使用 HippoRAG 2，对其他图谱构建方案的推广性未验证；3. RL 训练数据来源于 HotpotQA，领域迁移需要重新训练；4. 图谱构建计算成本高，实时更新不现实；5. 双路检索（文本+图谱）实现复杂度较高。",
+  "integration_effort": "高 — 需要 RL 训练基础设施、HippoRAG 2 图谱构建、开源 LM 本地部署；与当前 MCP 架构不兼容。估计从零构建需 4-8 周，若复用预训练权重需 2-3 周适配。",
+
+  "uncertain": ["领域迁移后的具体性能下降幅度"]
+}

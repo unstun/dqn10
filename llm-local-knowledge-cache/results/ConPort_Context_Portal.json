@@ -1,0 +1,36 @@
+{
+  "name": "ConPort (Context Portal)",
+  "category": "MCP生态",
+  "source": "https://github.com/GreatScottyMac/context-portal",
+  "maturity": "early-stage",
+
+  "architecture": "ConPort 是项目级知识图谱 MCP Server，以 Python/FastAPI 实现，通过 STDIO 模式集成到 IDE（Roo Code/CLine/Windsurf Cascade 等）。存储层：每个工作区一个 SQLite 数据库（context_portal/context.db），用 Alembic 管理 schema 迁移。功能层：暴露 40+ MCP Tools，涵盖决策日志（Decision Logging）、进度追踪（Progress Tracking）、系统模式文档（System Patterns）、自定义数据存储（词汇表/规格说明）。检索层：FTS5 全文搜索 + 向量 embedding 语义搜索。知识图谱层：捕获实体（决策/进度/架构）及其关系，构建项目专属知识图。",
+  "retrieval_trigger": "always（IDE 集成后 Agent 按需调用工具检索）",
+  "verification_method": "none",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "决策记录、进度状态、系统架构模式、自定义数据（词汇表/规格）、代码结构",
+  "retrieval_method": "混合（FTS5 全文检索 + 向量语义检索）",
+  "hallucination_mitigation": "通过持久化决策日志和架构记录，为 Agent 提供准确的项目上下文，减少因上下文遗忘导致的错误；无主动幻觉检测",
+  "offline_capability": "full-local（SQLite 本地存储，无云依赖）",
+  "local_model_support": "支持（本地 LLM 可作为 MCP Host 使用 ConPort）",
+  "embedding_strategy": "standard（向量检索使用标准 embedding）",
+
+  "setup_complexity": "low（推荐 uvx 运行：uvx --from context-portal-mcp conport-mcp --mode stdio；无需手动安装数据库）",
+  "token_cost": "不变或降低（结构化存储替代重读文件，减少无关上下文注入）",
+  "latency": "ms 级（SQLite 本地查询 + STDIO 通信）",
+  "dqn10_fit": "高度对标，是现有 bigmemory/.pipeline/ 的最接近替代方案。具体对比：ConPort 的 Decision Logging ↔ bigmemory 未关闭决策；Progress Tracking ↔ 热区状态简报；Custom Data ↔ .pipeline/terminology/；Semantic Search ↔ ACE 语义检索。优势：(1) SQLite 可查询，优于 Markdown 平文件的 Grep；(2) 40+ 工具开箱即用；(3) FTS5+向量混合搜索优于纯 ACE；(4) 与 Claude Code 集成简单。局限：(1) 无时序知识图谱，无事实有效期管理；(2) 现有 bigmemory 数据迁移需人工整理；(3) GitHub 760 stars，社区较小，维护风险；(4) 无论文级别的学术引用追溯支持。",
+
+  "domain_adaptability": "强（项目无关的通用架构，可适配 DQN 实验记录）",
+  "incremental_update": "支持（SQLite 增量写入，支持 batch 操作）",
+  "citation_traceability": "source-link（工具调用结果可携带来源标记，但无学术引用原生支持）",
+  "temporal_awareness": "temporal-versioned（SQLite 记录含时间戳，支持按时间查询）",
+  "provenance_tracking": "chunk-level（精确到具体决策/进度条目）",
+  "memory_consolidation": "manual（需人工整理或 Agent 辅助归档，无自动去重）",
+
+  "benchmark_comparison": "无公开 benchmark 数据。GitHub 760+ stars，191 commits，社区反馈积极。",
+  "known_limitations": "1. 需要显式 workspace_id 或 IDE 变量扩展（$\\{workspaceFolder\\} 常失效，需配置绝对路径）；2. SQLite 无内置多用户并发控制；3. FTS 搜索限于预定义字段前缀；4. 无时序有效期管理；5. 社区规模小（760 stars），长期维护不确定；6. 无自动记忆合并去重",
+  "integration_effort": "低至中。安装配置约 1 天（配置 Claude Code MCP 连接）；数据迁移（bigmemory → ConPort 格式）约 2-3 天；更新 memory-worker prompt 约 0.5 天。总计约 3-4 天。",
+
+  "uncertain": []
+}

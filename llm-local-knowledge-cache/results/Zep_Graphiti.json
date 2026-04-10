@@ -1,0 +1,36 @@
+{
+  "name": "Zep / Graphiti",
+  "category": "MCP生态",
+  "source": "https://arxiv.org/abs/2501.13956",
+  "maturity": "production-ready",
+
+  "architecture": "Zep 是一个 Agent 记忆层服务，核心引擎为 Graphiti——一个时序感知知识图谱引擎。Graphiti 动态合成非结构化对话数据与结构化业务数据，同时维护历史关系。每个事实节点携带有效期窗口（bi-temporal 设计：记录知识创建时间和知识在现实中的有效时间），支持知识的自动失效和更新。系统提供 MCP Server 接口，AI Agent 可通过标准 MCP 协议访问记忆检索和存储功能。知识以图谱形式组织，支持跨会话信息综合和长期上下文维护。",
+  "retrieval_trigger": "always（Agent 每次需要记忆时主动检索）",
+  "verification_method": "none（系统侧重存储和检索，不含内置验证机制）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "对话历史、结构化业务数据、API 数据流",
+  "retrieval_method": "图谱遍历 + 向量语义（时序感知的混合检索）",
+  "hallucination_mitigation": "通过时序知识图谱维护事实的时间有效性，防止 Agent 使用过时信息；跨会话信息综合减少因上下文丢失导致的错误；但无主动事实核查机制",
+  "offline_capability": "hybrid（Zep 提供 SaaS 版本；Graphiti 开源可本地部署）",
+  "local_model_support": "支持（Graphiti 开源，可配合本地 LLM 使用）",
+  "embedding_strategy": "standard（知识图谱节点使用标准 embedding 做相似度检索）",
+
+  "setup_complexity": "medium（Graphiti 需要图数据库 Neo4j 或兼容存储；MCP Server 配置约需 1-2 天）",
+  "token_cost": "降低（时序图谱只检索相关子图，避免传入完整历史；响应延迟降低 90% 间接降低重试成本）",
+  "latency": "秒级（论文报告响应延迟降低 90%，绝对数值未公开）",
+  "dqn10_fit": "中等契合。优势：时序知识图谱与 DQN10 冷区按天归档的模式互补，可将实验里程碑和决策记录为带时效性的图谱节点；MCP Server 接口可直接集成。局限：(1) Zep SaaS 版依赖云服务；(2) Graphiti 本地部署需 Neo4j，增加基础设施复杂度；(3) 现有 bigmemory Markdown 数据需要迁移成本；(4) 对单人科研场景的价值主要是防止使用过时配置/结论，需评估是否值得迁移成本。",
+
+  "domain_adaptability": "强，知识图谱结构无领域约束，可适配实验配置、论文结论、代码变更等任意类型知识",
+  "incremental_update": "支持（核心特性，新事实自动更新图谱节点，旧事实标记为历史）",
+  "citation_traceability": "source-link（图谱节点携带来源元数据）",
+  "temporal_awareness": "temporal-versioned（bi-temporal 设计，每条知识带创建时间和有效期窗口）",
+  "provenance_tracking": "chunk-level（图谱节点对应知识片段，可追溯到源对话/文档）",
+  "memory_consolidation": "graph-based（知识图谱自动合并冲突事实，标记失效节点）",
+
+  "benchmark_comparison": "Deep Memory Retrieval (DMR) 基准：Zep 94.8% vs MemGPT 93.4%（+1.4%）；LongMemEval 基准：相比基线提升最高 18.5%；响应延迟：降低 90%。在跨会话信息综合和长期上下文维护方面显著优于 MemGPT。",
+  "known_limitations": "1. 本地部署需要图数据库（Neo4j），增加基础设施依赖；2. SaaS 版存在隐私风险；3. 现有平文件知识库迁移到图谱有一定工程成本；4. 对话数据以外的知识（如代码变更、实验指标）需自定义摄入管道；5. bi-temporal 设计增加查询复杂度",
+  "integration_effort": "中高。需要：(1) 搭建 Neo4j 或 Graphiti 兼容存储（1 天）；(2) 将现有 bigmemory 数据迁移为图谱格式（2-3 天）；(3) 配置 MCP Server 并更新 memory-worker（1 天）；总计约 4-5 天工作量",
+
+  "uncertain": []
+}

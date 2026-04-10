@@ -1,0 +1,36 @@
+{
+  "name": "A-RAG (Agentic RAG)",
+  "category": "架构范式",
+  "source": "https://arxiv.org/abs/2602.03442",
+  "maturity": "research",
+
+  "architecture": "A-RAG（Agentic RAG）框架将分层检索接口直接暴露给 LLM Agent，让模型主动参与检索决策，而非依赖固定算法或预定义工作流。三种层次化检索工具：(1) 关键词搜索（Keyword Search）：宽泛信息发现；(2) 语义搜索（Semantic Search）：基于含义的精准检索；(3) 块阅读（Chunk Read）：细粒度文档深度探索。三原则设计：自主策略（Agent 自主决定何时检索、用哪种工具）+ 迭代执行（多轮检索逐步精化）+ 工具交替（不同粒度检索工具灵活切换）。关键区别：传统 RAG 单轮固定检索→Agent 被动接收；A-RAG 多轮自主检索→Agent 主动参与，实现随模型能力和测试时计算扩展的性能提升。",
+  "retrieval_trigger": "rl-learned（Agent 自主决定检索策略，类似 RL 学习的决策过程）",
+  "verification_method": "none（框架侧重检索策略，无内置验证）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "文档知识库（支持向量语义和关键词检索的任意文档集）",
+  "retrieval_method": "混合（关键词搜索 + 语义搜索 + 块级读取，由 Agent 自主选择）",
+  "hallucination_mitigation": "多粒度迭代检索确保 Agent 获取充分证据后再生成，减少因证据不足导致的幻觉；Agent 可主动发起深度探索（Chunk Read）验证关键细节",
+  "offline_capability": "hybrid（框架本身与云/本地无关；取决于底层 LLM 和检索库选择）",
+  "local_model_support": "支持（框架与模型无关，可配合本地 LLM）",
+  "embedding_strategy": "standard（语义搜索组件使用标准 embedding）",
+
+  "setup_complexity": "medium（需要构建三种粒度的检索接口；与现有 RAG 基础设施集成相对简单）",
+  "token_cost": "不变或增加（迭代检索消耗更多 token，但检索到更相关内容减少生成时的冗余；论文报告使用相当或更少的检索 token）",
+  "latency": "秒级（多轮迭代检索；Agent 自主策略可能导致变长的检索序列）",
+  "dqn10_fit": "高契合，设计理念与 DQN10 需求高度匹配。具体价值：(1) 暴露分层检索接口给 Claude Agent（bigmemory 热区=关键词检索，.pipeline/=语义搜索，具体文件=块读取），复用现有三层架构语义；(2) 迭代检索适合复杂问题（如「最近三周哪些实验配置被修改」需要多轮查询）；(3) 随模型能力提升自动获益，无需修改框架。实施路径：将现有 ACE 和 Grep 工具重新包装为三种层次化 MCP Tools，memory-worker 自动获得 A-RAG 能力，工程量最小。",
+
+  "domain_adaptability": "强（框架无领域约束，DQN 实验日志和论文知识库均可接入）",
+  "incremental_update": "支持（底层检索库增量更新，框架层无感知）",
+  "citation_traceability": "chunk-level（Chunk Read 工具可追溯到文档片段级别）",
+  "temporal_awareness": "static（框架本身无时序感知，需底层知识库支持）",
+  "provenance_tracking": "chunk-level（精细粒度的 Chunk Read 工具支持精确溯源）",
+  "memory_consolidation": "none（框架层不涉及记忆整合）",
+
+  "benchmark_comparison": "多个开放域 QA 基准：A-RAG 一致优于现有方法，使用相当或更少的检索 token；性能随模型规模和测试时计算线性扩展。具体数值未在摘要页面公开，需读全文。",
+  "known_limitations": "1. 迭代检索延迟相比单轮 RAG 增加；2. Agent 自主策略可能在简单问题上过度检索（计算浪费）；3. 需要同时实现三种粒度检索接口增加系统复杂度；4. 论文为 2026 年最新，代码可获得性待确认",
+  "integration_effort": "低至中。DQN10 已有 ACE（语义）和 Grep（关键词）两种检索工具，主要工作：(1) 将现有工具重新包装为分层 MCP Tools（0.5-1 天）；(2) 更新 memory-worker prompt 使用分层检索策略（0.5 天）；总计约 1-2 天，是最低实施成本的方案之一。",
+
+  "uncertain": ["benchmark_comparison"]
+}

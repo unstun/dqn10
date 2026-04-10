@@ -1,0 +1,36 @@
+{
+  "name": "bigmemory/.pipeline/ 现有架构",
+  "category": "MCP生态",
+  "source": "本地分析",
+  "maturity": "production-ready",
+
+  "architecture": "DQN10 项目自研的三层记忆系统。热区（bigmemory/hot/）：状态简报（≤1500字）+ 未关闭决策（≤1200字）+ 近期改动（≤1000字），为每次会话提供即时上下文；冷区（bigmemory/cold/）：按天归档的改动/踩坑/调研/心路/里程碑/会话记录，长期知识沉淀；知识库（.pipeline/）：包含 terminology/、literature/、survey/、experiments/、papers/ 子目录，存储研究领域结构化知识。全部为 Markdown 平文件 + YAML 配置，无数据库依赖。MCP 集成：通过 ACE (augment-context-engine) MCP Server 做语义搜索，Grep 工具做精确匹配。记忆入口：session start 时 memory-worker（sonnet 模型）自动从 bigmemory 检索相关上下文。记忆出口：用户调用 /archive 手动触发 5 Worker 并行落盘归档。",
+  "retrieval_trigger": "always（每次会话开始时 memory-worker 自动检索）",
+  "verification_method": "none",
+  "cache_tier_strategy": "none（热区/冷区是按时间维度分层，非缓存命中分层）",
+
+  "knowledge_source_types": "Markdown 平文件（实验日志/会话记录/踩坑/里程碑）、YAML 配置、论文 PDF（存于 1_survey/papers/）、代码注释",
+  "retrieval_method": "向量语义（ACE MCP Server）+ 精确匹配（Grep 工具）",
+  "hallucination_mitigation": "通过将历史决策、实验结果和踩坑记录注入 session context，减少 AI 对项目特有细节的幻觉；但无自动事实核查机制，依赖 Dr Sun 人工审核",
+  "offline_capability": "full-local（全部本地 Markdown 文件，无云依赖）",
+  "local_model_support": "支持。memory-worker 使用 claude-sonnet 本地可用，ACE 语义搜索在本地运行",
+  "embedding_strategy": "standard（ACE 使用标准 embedding，未做 chunk 级上下文描述增强）",
+
+  "setup_complexity": "low（已部署运行，无需额外安装）",
+  "token_cost": "增加（memory-worker 每次重读全部热区文件约 3700 字，约消耗 ~1500 token；无缓存机制）",
+  "latency": "秒级（memory-worker 检索约 5-15 秒，/archive 5 Worker 并行约 2-5 分钟）",
+  "dqn10_fit": "这就是 DQN10 的现有系统，是所有调研方案的对比基准。当前主要不足：(1) ACE 无缓存，每次会话重新检索全部文件；(2) 热区无向量索引，Grep 精确匹配对语义相似内容覆盖不足；(3) 文献库（.pipeline/literature/）无语义搜索，只能 Grep 关键词；(4) memory-worker 每次重读全部热区，冷区大后检索成本线性增长。改进方向：引入 MCP Server 封装检索接口、添加向量索引、实现增量归档。",
+
+  "domain_adaptability": "强，专为 DQN/强化学习研究定制，所有实验结果、超参数、踩坑均已结构化记录",
+  "incremental_update": "支持。冷区按天自动追加，热区由 /archive 增量刷新",
+  "citation_traceability": "source-link（论文存于 1_survey/papers/<CitationKey>.pdf，文献记录含 BibTeX key）",
+  "temporal_awareness": "temporal-versioned（冷区文件按日期命名，热区记录近期改动时间戳）",
+  "provenance_tracking": "source-link（可追溯到原始 Markdown 文件，但无 chunk 级或 claim 级精确定位）",
+  "memory_consolidation": "manual（/archive 由 Dr Sun 手动触发，LLM 辅助合并热区内容，但最终由人审核）",
+
+  "benchmark_comparison": "无公开 benchmark；与 MemGPT 等系统相比：优势在于完全本地、零基础设施依赖、与 Claude Code 原生集成；劣势在于无向量索引、无时序知识图谱、检索效率随冷区增长下降",
+  "known_limitations": "1. ACE 无缓存：每次会话重读全部文件，冷区大后延迟增加；2. 热区无索引：Grep 匹配对同义词/语义相似内容无效；3. 文献库无语义检索：.pipeline/literature/ 只能关键词搜索；4. memory-worker 每次重读全部热区（3700字），token 消耗随内容增长；5. 无自动事实核查：错误信息可能被归档后持续影响后续会话",
+  "integration_effort": "N/A（现有系统）",
+
+  "uncertain": []
+}

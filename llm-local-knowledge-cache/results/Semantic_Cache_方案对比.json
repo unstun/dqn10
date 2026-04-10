@@ -1,0 +1,36 @@
+{
+  "name": "语义缓存方案对比 (Redis / LangChain / 轻量方案)",
+  "category": "缓存工程",
+  "source": "综合对比 — Redis 官方文档 / LangChain 文档 / Upstash 文档",
+  "maturity": "production-ready",
+
+  "architecture": "本条目横向对比三类语义缓存方案。(1) Redis Semantic Cache（RedisSemanticCache）：依托 Redis Vector Sets（2025 年春季发布的 LangCache 服务）或 Redis Stack，将查询 embedding 存入 Redis 向量索引，命中时返回缓存响应。支持精确匹配（RedisCache，MD5 哈希）和语义匹配（RedisSemanticCache，余弦相似度）双模式，生产级高可用。(2) LangChain Cache 抽象层：LangChain 提供统一 Cache 接口，支持 InMemoryCache、SQLiteCache、RedisCache、RedisSemanticCache、GPTCache 等多种后端，通过 `set_llm_cache()` 一行配置切换；本质是缓存后端的适配器，自身不实现存储。(3) 轻量方案（Upstash Semantic Cache、FAISS+SQLite 自建）：无服务器架构（Upstash）或纯本地（FAISS）；适合低成本个人/小团队场景。",
+  "retrieval_trigger": "none — 所有方案均为缓存触发逻辑（相似度阈值判断命中/未命中），非主动知识检索触发。",
+  "verification_method": "none — 语义缓存方案均不包含事实验证机制；命中质量取决于缓存内容的事实性。",
+  "cache_tier_strategy": "dual-layer — Redis 方案可组合精确哈希（RedisCache）+ 向量相似度（RedisSemanticCache）实现双层缓存；LangChain 通过叠加多个 Cache 后端实现；单独的 GPTCache/Upstash 为单层；Redis LangCache（2025）提供托管式单层语义缓存。",
+
+  "knowledge_source_types": "缓存 LLM 响应（问题-答案对）；部分方案支持将知识文档预存为 embedding 但主要用途仍是响应缓存",
+  "retrieval_method": "向量语义检索 — 所有方案均使用 embedding 相似度搜索；Redis 使用内置向量搜索；FAISS 使用近似最近邻",
+  "hallucination_mitigation": "间接效果 — 复用已验证的历史响应避免同一问题的随机幻觉；但均不主动核验缓存内容的事实性。",
+  "offline_capability": "Redis: hybrid（Redis Stack 可本地部署，托管版需联网）；LangChain: full-local（SQLiteCache/InMemoryCache 完全离线）；Upstash: cloud-only（Serverless）",
+  "local_model_support": "Redis: 支持本地 embedding 模型（通过 langchain-redis 配置）；LangChain: 支持（embedding 可配置任意本地模型）；Upstash: 内置 embedding，无需配置外部模型",
+  "embedding_strategy": "standard — 所有方案默认使用标准 embedding；Upstash 内置 embedding 生成，其他方案支持自定义 embedding 模型",
+
+  "setup_complexity": "Redis Semantic Cache: medium（需要 Redis Stack 或 Upstash Redis）；LangChain Cache: low（set_llm_cache 一行配置）；Upstash: low（Serverless 免配置）；FAISS 自建: medium",
+  "token_cost": "降低 — 所有方案缓存命中时完全跳过 LLM 调用；Redis 官方案例显示语义缓存速度提升 5.22x；实际 token 节省比例取决于查询重复率",
+  "latency": "Redis Semantic Cache: 毫秒级命中（10-50ms 向量搜索）；LangChain InMemoryCache: 微秒级；Upstash: 20-100ms（网络 RTT）；FAISS 本地: 1-10ms",
+  "dqn10_fit": "对 DQN10 的实用价值：LangChain Cache 抽象层是最低成本的集成方案——当前 MCP 工具链若使用 LangChain 封装，可一行代码启用 SQLiteCache 本地语义缓存，缓存对重复 DQN 问题（公式/概念/算法步骤）的 LLM 响应。Redis Semantic Cache 适合需要多用户共享缓存的场景（当前单人科研暂无此需求）。Upstash 免费层（500K 请求/月）足够单人科研用量，零运维成本。推荐：先用 LangChain SQLiteCache（3 分钟集成），需要时升级到 Upstash。",
+
+  "domain_adaptability": "强 — 语义缓存与领域无关",
+  "incremental_update": "支持 — 所有方案均自动写入新响应到缓存；Redis 支持 TTL 过期策略",
+  "citation_traceability": "none — 缓存响应不追踪原始来源",
+  "temporal_awareness": "static — 默认无时间感知；Redis/SQLite 支持 TTL 策略按时间过期缓存，实现有限时间管理",
+  "provenance_tracking": "none — 无溯源功能",
+  "memory_consolidation": "auto-dedup — 向量相似度检索隐式实现去重（相似查询复用缓存）；Redis LangCache 支持集中式缓存管理",
+
+  "benchmark_comparison": "Redis Semantic Cache vs 无缓存：命中时速度提升 5.22x（LangChain 官方案例）；Redis LangCache（2025 新发布）：托管语义缓存服务，具体 benchmark 待评估。GPTCache 声称 100x 速度提升（命中场景）；Upstash 未提供公开 benchmark 数据。各方案均未提供在事实准确率维度的标准 QA benchmark 对比（语义缓存本质上不影响准确率，仅影响延迟和成本）。",
+  "known_limitations": "通用局限：(1) 语义相似度假阳性风险——相似措辞但答案不同的问题错误命中缓存；(2) 缓存内容过时——LLM 知识更新后缓存中仍是旧答案（需 TTL 机制或手动清除）；(3) 冷启动问题——新系统缓存命中率低。方案特定局限：Redis 需要额外基础设施；Upstash 对数据隐私敏感的科研内容存云端有顾虑；LangChain 抽象层增加依赖复杂度。",
+  "integration_effort": "LangChain SQLiteCache: 极低（< 1 小时）；Upstash Semantic Cache: 低（< 1 天）；Redis Semantic Cache: 中等（1-3 天，需配置 Redis 实例）。",
+
+  "uncertain": ["Redis LangCache 2025年新版具体性能数据", "各方案假阳性率的实际测量数据"]
+}

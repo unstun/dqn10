@@ -1,0 +1,36 @@
+{
+  "name": "AFEV",
+  "category": "验证核查",
+  "source": "https://arxiv.org/html/2506.07446v1",
+  "maturity": "research",
+
+  "architecture": "AFEV（Adaptive Fact-Evidence Verification）是迭代式原子事实验证框架，包含三个核心模块：(1) 动态原子事实提取（Dynamic Atomic Fact Extraction）：迭代从复杂声明中提取原子事实，公式为 Ft=Extractor(C, F_{1:t-1}, y_{1:t-1}, r_{1:t-1})，前一轮验证结果反馈指导下一轮提取，减少错误传播；(2) 精细证据检索（Refined Evidence Retrieval）：先语义相似度检索 top-k' 候选，再用监督训练的重排器（InfoNCE loss，LLM 选正负样本）过滤噪声，同时用相似度评分动态采样事实专属示例；(3) 自适应原子事实验证（Adaptive Atomic Fact Verification）：推理器生成事实性标签和可解释理由，理由反馈注入下一轮提取迭代。",
+  "retrieval_trigger": "always（每条原子事实触发精细检索）",
+  "verification_method": "claim-decomposition（迭代分解→证据重排→验证→反馈注入，比 SAFE 增加了迭代和重排步骤）",
+  "cache_tier_strategy": "none",
+
+  "knowledge_source_types": "结构化知识库（LIAR-PLUS/HOVER/PolitiHop 等事实核查数据集作为证据源）",
+  "retrieval_method": "混合（语义相似度检索 + 监督重排器精细过滤）",
+  "hallucination_mitigation": "迭代反馈机制使每轮验证结果改善下一轮事实提取质量；可解释理由提供人工审核入口；重排器过滤噪声证据提高验证精度",
+  "offline_capability": "hybrid（LLM 推理可本地，但证据库构建需要外部数据集）",
+  "local_model_support": "支持（LLM 推理组件可替换为本地模型）",
+  "embedding_strategy": "standard（检索使用标准语义 embedding）",
+
+  "setup_complexity": "high（需要训练重排器、构建证据库、实现迭代管道；不是开箱即用工具）",
+  "token_cost": "增加（迭代分解 + 多次检索 + 重排：论文报告消耗时间 0.94h vs 消融版 0.71h，约增加 32%）",
+  "latency": "分钟级（迭代处理，完整验证需较长时间）",
+  "dqn10_fit": "低至中等。AFEV 主要面向事实核查 benchmark 场景（政治声明、新闻核查），其证据库构建和重排器训练需要大量有标注数据，不适合直接用于 DQN10 项目知识管理。价值点：迭代反馈机制（验证结果改善下一轮提取）是对 SAFE 的有价值改进，可借鉴其设计思路；但工程实现成本高，不如 MiniCheck 直接可用。最适合：若 DQN10 未来需要对 AI 生成论文内容做自动核查，可参考 AFEV 的迭代反馈设计，不必直接使用 AFEV 系统。",
+
+  "domain_adaptability": "中等（训练重排器需要领域标注数据，DQN 领域适配成本高）",
+  "incremental_update": "不涉及（验证工具，非知识库）",
+  "citation_traceability": "claim-level（精确到每条原子事实及其验证理由）",
+  "temporal_awareness": "static",
+  "provenance_tracking": "claim-level（可解释理由精确到原子事实级别）",
+  "memory_consolidation": "none",
+
+  "benchmark_comparison": "LIAR-PLUS：83.73%；HOVER：78.87%；PolitiHop：74.14%（均优于 VMASK 基线）。RAWFC（60.2% F1）和 LIAR（43.9% F1）均优于 RAFTS。迭代消耗时间 0.94h vs 消融版 0.71h（增加约 32%），但精度显著提升。论文缺乏与 SAFE 的直接定量对比。",
+  "known_limitations": "1. 重排器需要监督训练（需标注正负证据对），冷启动成本高；2. 迭代处理延迟增加约 32%；3. 缺乏与 SAFE 等主流方案的直接对比数据；4. 证据库质量对最终精度影响大；5. 不适合无标注证据库的场景（如 DQN10 私有实验数据）",
+  "integration_effort": "高。需要构建证据库、训练重排器、实现迭代管道，估计 2-4 周工作量。不建议直接集成，建议借鉴设计思路。",
+
+  "uncertain": []
+}
