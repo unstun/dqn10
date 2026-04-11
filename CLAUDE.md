@@ -8,7 +8,7 @@
 你在一个长周期 PhD 研究项目中工作。每次会话只做一件事。
 会话协议:读状态 → 做一个任务 → 写状态 → 结束。
 
-Dr Sun 提出第一句话后,**自动**派 memory-worker 从 bigmemory 全局检索相关上下文(Droid: minimax2.5 / Claude Code: sonnet),基于返回的上下文开始工作。
+Dr Sun 提出第一句话后,**自动**触发 `memory-retrieval` skill,通过 auggie 从 bigmemory/ 和 .pipeline/ 语义检索相关上下文,基于返回的上下文开始工作。
 
 ## 角色
 
