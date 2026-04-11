@@ -25,6 +25,8 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+# Cursor: 若在本仓库放含密钥的 MCP 配置,勿提交(用 mcp.example.json 作模板)
+.cursor/mcp.json
 
 # LaTeX
 *.aux
