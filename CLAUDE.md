@@ -23,7 +23,7 @@ Dr Sun 提出第一句话后,**自动**触发 `memory-retrieval` skill,通过 au
 2. MUST:默认中文回复,思考语言为专业流英语,交互与注释语言为中文，所有对Dr Sun的提问需要用中文提问，更易于人去理解。
 3. MUST:注释须 ASCII 风格分块,代码如顶级开源库——"代码是写给人看的,只是顺便让机器运行"。
 4. MUST:改文件前最好深思熟虑，尽量先做计划,等"开始"后再动手。
-5. MUST:Dr Sun 第一句话后,自动派 memory-worker 从 bigmemory 全局检索相关上下文,不等用户要求。
+5. MUST:Dr Sun 第一句话后,自动触发 `memory-retrieval` skill(auggie 语义检索 bigmemory/ + .pipeline/),不等用户要求。详见 `.claude/skills/memory-retrieval/SKILL.md`。
 
 ### 研究纪律
 
