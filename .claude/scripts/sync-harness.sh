@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # ============================================================================
-# sync-harness.sh — Harness 完整性三项检查
+# sync-harness.sh — Harness 完整性四项检查
 # ----------------------------------------------------------------------------
 # 检查项:
 #   1. symlink 完整性: .factory/commands → .claude/commands
 #                       .factory/skills  → .claude/skills
 #   2. CLAUDE.md ≡ AGENTS.md 逐行一致(硬规则 #15)
 #   3. agents/droids 文件名覆盖: .claude/agents/ vs .factory/droids/
+#   4. agents/droids 内容漂移: 正文(去 frontmatter)是否一致
 # ----------------------------------------------------------------------------
-# 用法: bash scripts/sync-harness.sh
+# 用法: bash .claude/scripts/sync-harness.sh
 # 返回: 全部通过 → exit 0; 有失败 → exit 2
 # ============================================================================
 set -euo pipefail
