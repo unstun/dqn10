@@ -55,7 +55,7 @@ Dr Sun 提出第一句话后,**自动**触发 `memory-retrieval` skill,通过 au
 
 ## 记忆系统
 
-**入口(自动)**:memory-worker 从 bigmemory 抓取相关上下文(见硬规则 #5)。
+**入口(自动)**:`memory-retrieval` skill 通过 auggie 从 bigmemory/ 和 .pipeline/ 语义检索相关上下文(见硬规则 #5)。
 **出口(手动)**:Dr Sun 调用 `/archive`,执行分诊 + 冷区归档 + 热区刷新 + `.pipeline/` 更新。
 详细结构见 `.claude/rules/memory-system.md`(读写 bigmemory/.pipeline/ 时自动加载)。
 
