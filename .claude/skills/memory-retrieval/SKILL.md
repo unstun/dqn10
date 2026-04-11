@@ -199,12 +199,9 @@ subagent 返回后,主 AI 将检索到的上下文作为背景知识,
 | 延迟 | 10-20s(读文件+总结) | 15-30s(subagent+auggie) |
 | 可复用 | 仅限特定平台 | 任何能调 auggie 的 Agent |
 
-### 配套修改清单
+### 迁移状态
 
-启用本 skill 需同步修改以下文件(本 skill 创建后需 Dr Sun 确认再执行):
-
-1. **CLAUDE.md 硬规则 #5**: 更新为指向本 skill
-2. **AGENTS.md 硬规则 #5**: 同步更新(规则 #15 要求一致)
-3. **.claude/rules/memory-system.md**: 更新"记忆检索模型"段落
-4. **.factory/droids/memory-worker.md**: 可保留作为 Droid 回退,或同步升级
-5. 运行 `bash .claude/scripts/check-agents-sync.sh` 验证同步
+配套修改已于 2026-04-11 完成:
+- CLAUDE.md / AGENTS.md 硬规则 #5 + 记忆系统段落 — 已更新
+- `.claude/rules/memory-system.md` — 已更新
+- `.factory/droids/memory-worker.md` — 已标记 deprecated
