@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "grok-search": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/ABS/PATH/TO/grok-search/repo",
+        "grok-search"
+      ],
+      "env": {
+        "GROK_API_URL": "https://your.endpoint/v1",
+        "GROK_API_KEY": "${GROK_API_KEY}",
+        "TAVILY_API_KEYS": "${TAVILY_API_KEYS}",
+        "TAVILY_API_URL": "https://api.tavily.com"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}

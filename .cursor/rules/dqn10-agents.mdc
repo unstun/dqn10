@@ -1,0 +1,22 @@
+---
+description: DQN10 与 Claude Code 对齐的会话协议(以 AGENTS.md 为单一事实源)
+alwaysApply: true
+---
+
+# DQN10 项目 AI 协议
+
+完整硬规则以仓库根目录 `AGENTS.md` 为准（与 `CLAUDE.md` 逐行一致）。在 Cursor 中执行任务前应先对照 `AGENTS.md`。
+
+## Cursor 与 Claude Code 的差异
+
+- **Hooks**: 不会执行全局或项目里 `.claude/settings.json` 的 `SessionStart` / `PreToolUse` / `SessionEnd`；编辑前备份需你本地手动执行或脚本化。
+- **Skills / 插件市场**: `.claude/skills/` 与 Claude Code 插件不会自动注入；需要时主动打开相关 `SKILL.md` 或项目脚本。
+- **MCP**: 是否与 Claude 一致仅取决于本机 `~/.cursor/mcp.json` 或项目内 `.cursor/mcp.json`。模板见 `.cursor/mcp.example.json`；Augment(auggie)、Context7、Zotero 等需把 Claude 侧同一套 `command` / `args` / `env` 抄入 Cursor MCP 配置。
+
+## 与 AGENTS 对齐的执行要点
+
+- 默认中文回复；对 Dr Sun 以 "Dr Sun," 开头。
+- 每次会话一单任务；不确定的研究决策先问 Dr Sun。
+- 修改 `CLAUDE.md` / `AGENTS.md` 后同步并运行 `bash .claude/scripts/check-agents-sync.sh`。
+
+若本规则与 `AGENTS.md` 冲突，以 **AGENTS.md** 为准。
