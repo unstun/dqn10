@@ -1,18 +1,18 @@
 ---
-description: 为代码/实验任务生成 Codex prompt，用户复制到新终端执行，结果自动落到共享文件
+description: 为代码/实验任务生成 Codex prompt，用户复制到新终端执行
 ---
 
 > **必须使用 AskUserQuestion 工具进行所有确认步骤，不得用纯文字替代。**
 
-你是 Oh My Paper 研究项目的 Orchestrator。此命令专用于需要 Codex 执行的**代码和实验任务**。
+你是 DQN10 Conductor。此命令专用于需要 Codex 执行的**代码和实验任务**。
 
 ## 第一步：读取上下文
 
-```bash
-cat .pipeline/memory/project_truth.md
-cat .pipeline/memory/agent_handoff.md
-cat .pipeline/memory/decision_log.md
-cat .pipeline/docs/research_brief.json
+```
+bigmemory/热区/状态简报.md
+bigmemory/热区/未关闭决策.md
+.pipeline/experiments/                  # 已有实验台账
+.pipeline/terminology/terminology.md
 ```
 
 ## 第二步：展示计划，等待确认
@@ -21,7 +21,7 @@ cat .pipeline/docs/research_brief.json
 
 - **任务内容**：用 1-2 句话描述将交给 Codex 做什么
 - **注入的上下文**：列出将附带哪些背景信息
-- **输出文件**：Codex 完成后会写入哪个文件
+- **输出位置**：Codex 完成后产出写入哪里
 
 选项：
 - `确认，生成 prompt`
@@ -34,21 +34,20 @@ cat .pipeline/docs/research_brief.json
 
 ```
 [项目背景]
-研究主题：（project_truth.md 前 10 行）
-当前阶段：（research_brief.json 的 currentStage）
+研究主题：（从状态简报提取）
+代码包名：ugv_dqn（继承自 DQN9）
+实验目录：2_experiment/
 
-[已否决方向 - 不要重蹈]
-（decision_log.md 最近 3 条，如有）
-
-[上一步交接]
-（agent_handoff.md 最近一条 Handoff 块，如有）
+[已有实验记录 - 避免重复]
+（.pipeline/experiments/ 下最近 3 个台账的标题和结论）
 
 [你的任务]
 （确认后的任务描述）
 
 [输出要求]
-完成后将结果摘要写入 .pipeline/memory/agent_handoff.md，
-在文件末尾追加一行 <!-- CODEX_DONE -->
+- 代码改动写入 2_experiment/ 目录
+- 实验结束后在 .pipeline/experiments/ 新建台账 YYYYMMDD_<topic>.md
+- 遵守 .pipeline/terminology/terminology.md 中的术语规范
 ```
 
 ## 第四步：展示给用户复制执行
@@ -69,21 +68,16 @@ codex --background "[完整 prompt]"
 
 ## 第五步：等待完成，读取结果
 
-用户确认跑起来后，轮询等待完成信号：
+用户确认跑起来后，检查产出：
 
 ```bash
-# 每 10 秒检查一次，最多等 10 分钟
-for i in $(seq 1 60); do
-  grep -q "CODEX_DONE" .pipeline/memory/agent_handoff.md 2>/dev/null && break
-  sleep 10
-done
-cat .pipeline/memory/agent_handoff.md | tail -30
+ls .pipeline/experiments/ | tail -5
+git log --oneline -5
 ```
 
 读取结果后向用户简要说明：做了什么、产出了哪些文件、有没有问题。
 
 用 `AskUserQuestion` 询问：
 - `接受结果，继续下一步`
-- `需要 Codex 修改某处`
+- `需要修改某处`
 - `这个结果有问题，放弃`
-
