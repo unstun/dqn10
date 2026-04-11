@@ -1,58 +1,52 @@
 ---
-description: 论文写作冲刺：按节确认后逐步推进，每节完成后展示再继续
+description: 论文写作：按需推进 3_paper/main.tex，每步确认后再继续
 ---
 
 > **必须使用 AskUserQuestion 工具进行所有确认步骤，不得用纯文字替代。**
 
-你是 Oh My Paper Orchestrator。写作按节推进，每节完成后确认再继续。
+你是 DQN10 Paper Writer。写作按需推进，每步完成后确认再继续。
 
-## 第一步：确认写作范围
+## 第一步：读取写作上下文
 
-```bash
-cat .pipeline/docs/result_summary.md
-ls sections/
 ```
+bigmemory/热区/状态简报.md
+3_paper/main.tex                         # 论文主文件（单文件结构）
+3_paper/writing_rules.md                 # 写作硬约束（强制遵守）
+.pipeline/literature/index.md            # 参考文献索引
+.pipeline/experiments/                   # 实验台账（真实数据来源）
+.pipeline/terminology/terminology.md     # 术语规范（强制遵守）
+3_paper/references.bib                   # BibTeX 引用库
+```
+
+**注意**：论文是**单文件结构**（`3_paper/main.tex`），不是 `sections/*.tex` 分文件。
+
+## 第二步：确认写作范围
 
 用 `AskUserQuestion` 展示：
 
-> **准备写作的章节**：
-> - [ ] abstract.tex
-> - [ ] introduction.tex
-> - [ ] related_work.tex
-> - [ ] methodology.tex
-> - [ ] experiments.tex
-> - [ ] conclusion.tex（可选）
+> **论文当前状态**：[从 main.tex 提取各节完成度]
 >
-> 已有文件：[列出 sections/ 下已存在的]
+> 你想写/修改哪个部分？
 
 选项：
-- `全部从头写`
-- `只写缺少的章节`
-- `指定某几节`
+- `Abstract + Introduction`
+- `Related Work`
+- `Methodology`
+- `Experiments & Results`
+- `Conclusion`
+- `我来指定具体修改内容`
 
-## 第二步：按节逐步执行
+## 第三步：按节逐步执行
 
-每节开始前，先告知用户：
+每节开始前告知用户依赖的数据来源：
 
-> 现在写 **[节名]**，基于：[依赖的来源文件]
+> 现在写 **[节名]**，基于：[数据来源文件]
 
-然后调用 Codex：
-
-**摘要 + 引言：**
-
-调用 `inno-paper-writing` skill，根据 `.pipeline/memory/project_truth.md` 和 `.pipeline/docs/result_summary.md`，写 `sections/abstract.tex` 和 `sections/introduction.tex`，不捏造数据。
-
-**相关工作：**
-
-调用 `inno-paper-writing` skill，基于 `.pipeline/memory/literature_bank.md`（Status=accepted），写 `sections/related_work.tex`，`\cite{key}` 引用必须存在于 `references.bib`。
-
-**方法论：**
-
-调用 `inno-paper-writing` skill，基于 `project_truth.md` 中的方法描述，写 `sections/methodology.tex`，包含必要数学公式。
-
-**实验与结果：**
-
-调用 `inno-paper-writing` skill，基于 `.pipeline/memory/experiment_ledger.md` 和 `result_summary.md`，写 `sections/experiments.tex`，使用真实数据。
+写作规范：
+- 使用 `inno-paper-writing` 和 `scientific-writing` skills
+- **强制遵守** `3_paper/writing_rules.md` 和 `.pipeline/terminology/terminology.md`
+- 引用格式：`\cite{AuthorYear}` 对应 `3_paper/references.bib` 中的 key
+- 实验数据必须来自 `.pipeline/experiments/` 台账，严禁捏造
 
 每节完成后，用 `AskUserQuestion` 询问：
 
@@ -61,30 +55,17 @@ ls sections/
 选项：
 - `继续写下一节`
 - `先看看这节写得怎么样`
-- `这节有问题，让 Codex 修改`
+- `这节有问题，需要修改`
 - `暂停，稍后继续`
 
-## 第三步：图表和引用
+## 第四步：图表和引用
 
-所有节完成后，询问：
+写作完成后，询问：
 
 > 正文已完成。接下来：
 
 选项：
-- `生成图表（architecture diagram、结果对比图）`
-- `跳过图表，直接做引用审查`
+- `生成图表到 3_paper/figures/`
+- `做引用审查（inno-reference-audit）`
 - `两个都做`
-
-**图表：**
-
-调用 `inno-figure-gen` skill，生成 2-3 个关键图表到 `assets/figures/`。
-
-**引用审查：**
-
-调用 `inno-reference-audit` skill，检查所有 `\cite{}` 引用，修复缺失条目。
-
-## 完成后
-
-询问：
-- `进入 /omp:review 做同行评审`
-- `我自己先看看再说`
+- `进入 /review 做同行评审`
