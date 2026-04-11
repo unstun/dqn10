@@ -88,8 +88,8 @@ if [ -d "$AGENTS_DIR" ] && [ -d "$DROIDS_DIR" ]; then
         [ -f "$droid_file" ] || continue
 
         # 剥除 YAML frontmatter 后比较正文
-        agent_body=$(sed '1{/^---$/!q};1,/^---$/d' "$agent_file")
-        droid_body=$(sed '1{/^---$/!q};1,/^---$/d' "$droid_file")
+        agent_body=$(awk 'BEGIN{s=0} /^---$/{s++;next} s>=2' "$agent_file")
+        droid_body=$(awk 'BEGIN{s=0} /^---$/{s++;next} s>=2' "$droid_file")
 
         if [ "$agent_body" != "$droid_body" ]; then
             echo "  ⚠️  $name: agents 与 droids 正文不一致" >&2
