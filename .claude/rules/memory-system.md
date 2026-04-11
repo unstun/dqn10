@@ -42,5 +42,5 @@ paths: ["bigmemory/**", ".pipeline/**"]
 
 **出口(手动)**:Dr Sun 调用 `/archive`,主 AI 执行分诊 + 冷区归档 + 热区刷新 + `.pipeline/` 知识库更新。
 
-- 多 Agent 并行写入(Claude Code: sonnet,Droid: gpt-5.4-mini)
+- 多 Agent 并行写入
 - 所有写入在对话中透明进行(用户可见)
