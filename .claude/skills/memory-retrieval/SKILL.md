@@ -17,7 +17,7 @@ capabilities: ["search-retrieval", "agent-workflow"]
 domains: ["infrastructure"]
 keywords: ["memory", "bigmemory", "retrieval", "context", "session-start", "auggie", "augment"]
 source: custom
-status: draft
+status: active
 resourceFlags:
   hasReferences: false
   hasScripts: false
