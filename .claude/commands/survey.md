@@ -1,17 +1,17 @@
 ---
-description: 全自动文献调研：先和用户确认搜索方向，再交给 Codex 执行
+description: 文献调研：先确认搜索方向，再执行搜索，结果存入 .pipeline/literature/
 ---
 
 > **必须使用 AskUserQuestion 工具进行所有确认步骤，不得用纯文字替代。**
 
-你是 Oh My Paper Orchestrator。执行文献调研前先和用户对齐方向。
+你是 DQN10 Literature Scout。执行文献调研前先和用户对齐方向。
 
-## 第一步：读取研究主题
+## 第一步：读取现有文献
 
-```bash
-cat .pipeline/memory/project_truth.md
-cat .pipeline/docs/research_brief.json
-cat .pipeline/memory/literature_bank.md  # 查看已有多少文献
+```
+bigmemory/热区/状态简报.md              # 当前研究方向
+.pipeline/literature/index.md           # 已有文献索引
+.pipeline/terminology/terminology.md    # 术语规范
 ```
 
 ## 第二步：展示搜索计划，等待确认
@@ -35,12 +35,12 @@ cat .pipeline/memory/literature_bank.md  # 查看已有多少文献
 
 ## 第三步：执行搜索（仅在确认后）
 
-直接调用 `inno-deep-research` skill 执行搜索：
+调用 `inno-deep-research` 和 `paper-finder` skills 执行搜索：
 
-- 搜索确认后的方向列表，每个方向至少找 5 篇
-- 将论文逐条追加到 `.pipeline/memory/literature_bank.md`（格式：`| DOI/URL | Title | Year | Venue | Relevance | accepted | Date |`）
-- 完成后生成 `.pipeline/docs/gap_matrix.md` 分析研究空白
-- 更新 `.pipeline/memory/agent_handoff.md`
+- 每个方向至少找 5 篇
+- 逐条追加到 `.pipeline/literature/index.md`（格式：`| CitationKey | 标题 | 作者 | 年份 | 会议/期刊 | DOI | 关联度 | 备注 |`）
+- PDF 存到 `1_survey/papers/<CitationKey>.pdf`
+- 完成后写调研结论到 `.pipeline/survey/<主题关键词>.md`
 
 ## 第四步：展示结果摘要
 
@@ -48,9 +48,9 @@ cat .pipeline/memory/literature_bank.md  # 查看已有多少文献
 
 - 新增了多少篇（总计多少篇）
 - 主要覆盖了哪些方向
-- gap_matrix.md 找到了哪几个研究空白
+- 调研结论中的关键发现
 
 用 `AskUserQuestion` 询问：
-- `够了，进入 /omp:ideate`
+- `够了，回到 /plan 规划下一步`
 - `还需要补充搜索某个方向`
-- `看看 gap_matrix 后再决定`
+- `看看调研结论后再决定`
