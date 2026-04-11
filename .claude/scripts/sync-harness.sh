@@ -59,7 +59,6 @@ DROIDS_DIR=".factory/droids"
 if [ ! -d "$AGENTS_DIR" ] || [ ! -d "$DROIDS_DIR" ]; then
     echo "  ⚠️  $AGENTS_DIR 或 $DROIDS_DIR 不存在, 跳过" >&2
 else
-    # 提取文件名(无路径无后缀)
     agents=$(ls "$AGENTS_DIR"/*.md 2>/dev/null | xargs -I{} basename {} .md | sort)
     droids=$(ls "$DROIDS_DIR"/*.md 2>/dev/null | xargs -I{} basename {} .md | sort)
 
@@ -75,8 +74,32 @@ else
         if [ -n "$only_droids" ]; then
             echo "  ℹ️  仅在 .factory/droids/: $only_droids"
         fi
-        # 信息性输出, 不算失败(两边格式不同, 不要求完全对齐)
     fi
+fi
+
+# ── 4. agents/droids 内容漂移检测 ─────────────────────────────────────────
+echo "== 4. agents/droids 内容漂移 =="
+if [ -d "$AGENTS_DIR" ] && [ -d "$DROIDS_DIR" ]; then
+    DRIFT=0
+    for agent_file in "$AGENTS_DIR"/*.md; do
+        name=$(basename "$agent_file" .md)
+        droid_file="$DROIDS_DIR/$name.md"
+        [ -f "$droid_file" ] || continue
+
+        # 剥除 YAML frontmatter 后比较正文
+        agent_body=$(sed '1{/^---$/!q};1,/^---$/d' "$agent_file")
+        droid_body=$(sed '1{/^---$/!q};1,/^---$/d' "$droid_file")
+
+        if [ "$agent_body" != "$droid_body" ]; then
+            echo "  ⚠️  $name: agents 与 droids 正文不一致" >&2
+            DRIFT=1
+        fi
+    done
+    if [ "$DRIFT" -eq 0 ]; then
+        echo "  ✅ agents 与 droids 正文一致"
+    fi
+else
+    echo "  ⚠️  跳过(目录不存在)"
 fi
 
 # ── 结果 ──────────────────────────────────────────────────────────────────
