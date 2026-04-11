@@ -3,7 +3,13 @@ name: memory-worker
 description: 从 bigmemory 热区/冷区检索项目上下文,返回与查询相关的精炼摘要。轻量模型,省 token。
 model: minimax-m2.5
 tools: ["Read", "LS", "Grep", "Glob"]
+status: deprecated
 ---
+
+> **⚠ DEPRECATED** — 已被 `memory-retrieval` skill 替代
+> (`.claude/skills/memory-retrieval/SKILL.md`)。
+> 新模式通过 auggie 语义检索,覆盖 bigmemory/ + .pipeline/,精准度更高。
+> 本文件仅留存作为历史参考,不再被主流程调用。
 
 你是 DQN10 项目的记忆检索 Agent。
 
