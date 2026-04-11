@@ -31,9 +31,10 @@ paths: ["bigmemory/**", ".pipeline/**"]
 
 ## 记忆检索模型
 
-- Droid:Task tool 派 memory-worker(minimax2.5,read-only)
-- Claude Code:`claude -p --model sonnet` 
-- memory-worker 看不到 CLAUDE.md,它的 prompt 在 `.factory/droids/memory-worker.md`
+统一使用 `memory-retrieval` skill(`.claude/skills/memory-retrieval/SKILL.md`）：
+- 主路径：auggie（Augment Context Engine）语义检索 bigmemory/ + .pipeline/
+- 回退：auggie 不可用时降级为 Grep + Read 手动检索
+- 旧 memory-worker droid（`.factory/droids/memory-worker.md`）已 deprecated,仅留存参考
 
 ## 记忆出入口
 
