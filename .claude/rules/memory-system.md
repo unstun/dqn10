@@ -38,7 +38,7 @@ paths: ["bigmemory/**", ".pipeline/**"]
 
 ## 记忆出入口
 
-**入口(自动)**:Dr Sun 第一句话后,主 AI 自动派 memory-worker 从 bigmemory 全局检索相关上下文。
+**入口(自动)**:Dr Sun 第一句话后,主 AI 自动触发 `memory-retrieval` skill,通过 auggie 从 bigmemory/ 和 .pipeline/ 语义检索相关上下文。
 
 **出口(手动)**:Dr Sun 调用 `/archive`,主 AI 执行分诊 + 冷区归档 + 热区刷新 + `.pipeline/` 知识库更新。
 
